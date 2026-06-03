@@ -1,0 +1,87 @@
+% !TeX encoding = UTF-8
+% !TeX root = thesis.tex
+
+\section{Fazit und Ausblick}
+
+% ---------------------------------------------------------------------------
+\subsection{Zusammenfassung}
+% ---------------------------------------------------------------------------
+
+Diese Arbeit hat eine zweistufige hybride Pipeline zur Reduzierung von
+False Positives in der Cloud-Anomalieerkennung entwickelt und auf dem
+synthetischen Benchmark CloudAnoBench evaluiert. Der methodische Fokus lag
+auf einer leakage-sicheren Evaluation unter einer festen
+Recall-Nebenbedingung ($R \geq 0{,}95$), nicht auf der Maximierung
+einzelner Metriken. Beide Komponenten~--- metrischer Detektor und
+Log-Verifikation~--- wurden isoliert und in zwei Fusionskonfigurationen
+evaluiert; alle Ergebnisse sind durch einen festen Zufallszustand und
+13~Unit-Tests reproduzierbar.
+
+% ---------------------------------------------------------------------------
+\subsection{Beantwortung der Forschungsfrage}
+% ---------------------------------------------------------------------------
+
+Die Forschungsfrage wird bejaht: Die Log-Komponente reduziert die FPR von
+$79{,}8\,\%$ auf $26{,}3\,\%$ bei einem Recall von $0{,}958$~--- die
+Recall-Nebenbedingung ist damit erfüllt. Die vollständige Ergebnisanalyse
+und Argumentation findet sich in Abschnitt~\ref{sec:ablation} und den
+Abschnitten zur Diskussion.
+
+Der qualifizierende Befund ist, dass Log-Kontext auf Case-Ebene als
+eigenständiger Prädiktor dominiert und die Fusionsstufe keinen zusätzlichen
+Beitrag liefert: Das AND-Gate verliert aufgrund des niedrigen
+Metrik-Thresholds seine Filterfunktion auf Metrikseite; die Soft-Fusion
+erzielt eine niedrigere AP als die Log-Komponente allein. Die Nützlichkeit
+einer AND-Fusion hängt damit entscheidend von der Kalibrierung des
+Metrik-Triggers auf Case-Ebene ab, die in dieser Arbeit nicht umgesetzt wurde.
+
+Diese Befunde gelten für den CloudAnoBench-Datensatz unter den gewählten
+Konfigurationen und sind ohne weitere Evidenz nicht zu verallgemeinern.
+
+% ---------------------------------------------------------------------------
+\subsection{Ausblick}
+% ---------------------------------------------------------------------------
+
+Aus den Befunden dieser Arbeit ergeben sich mehrere konkrete Ansatzpunkte
+für zukünftige Arbeiten:
+
+\begin{description}
+  \item[Case-Level-Kalibrierung des Metrik-Triggers.]
+    Die AND-Gate-Degeneration ist eine direkte Folge der Threshold-Wahl auf
+    Zeilenebene. Eine Kalibrierung direkt auf aggregierten Case-Scores~---
+    oder der Einsatz alternativer Aggregationsregeln wie Median statt
+    Maximum~--- würde die AND-Gate-Logik erst operativ wirksam machen und
+    den eigenständigen Beitrag der Metrik-Komponente zur Fusion prüfbar machen.
+
+  \item[Alternative Fusionsregeln.]
+    Neben AND-Gate und Produkt-Regel existieren weitere Fusionsstrategien~---
+    etwa Summen-Regel, gewichtete Mehrheitsentscheidung oder lernbasierte
+    Kombinatoren. Ob solche Regeln auf CloudAnoBench einen messbaren Vorteil
+    gegenüber der Log-Komponente allein erzielen, bleibt eine offene Frage.
+
+  \item[Weiterentwicklung der Log-Komponente.]
+    Die log-basierte Verifikation wurde in dieser Arbeit als interpretierbare
+    Baseline mit TF-IDF und logistischer Regression umgesetzt. Ob
+    struktur-bewusste Log-Parser, vortrainierte Sprachmodelle oder
+    Embedding-Methoden auf diesem Datensatz zu einer weiteren FPR-Reduktion
+    führen, wäre eine naheliegende Erweiterung.
+
+  \item[Statistische Absicherung.]
+    Die berichteten Metriken basieren auf einem einzigen Trainings"=Test"=Split.
+    Die Frage, wie stabil die Ergebnisse über verschiedene Splits sind, ließe
+    sich durch Bootstrap-Konfidenzintervalle oder wiederholte Splits mit
+    unterschiedlichen Zufallszuständen beantworten.
+
+  \item[Evaluation auf realem Produktions-Traffic.]
+    CloudAnoBench verwendet kontrollierte Anomalie-Injektionen. Ob die
+    gelernten Muster auf reale Infrastrukturdaten~--- mit natürlichen
+    Klassenverteilungen, variablen Log-Formaten und unbekannten
+    Anomalietypen~--- übertragbar sind, ist durch diese Arbeit nicht
+    untersucht und stellt eine wichtige Anschlussfrage dar.
+
+  \item[Modularisierung der Pipeline.]
+    Die funktionale Pipeline liegt derzeit überwiegend in Jupyter Notebooks.
+    Eine Modularisierung in eine paketierbare, konfigurierbare
+    Software-Pipeline würde die Wiederverwendbarkeit und Anpassbarkeit an
+    andere Datensätze wesentlich verbessern.
+\end{description}

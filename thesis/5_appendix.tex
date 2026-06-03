@@ -1,0 +1,20 @@
+% !TeX encoding = UTF-8
+% !TeX root = thesis.tex
+
+\section{Anhang}
+
+Die zur Reproduktion relevanten Artefakte befinden sich im Repository: die vier
+Jupyter-Notebooks (\texttt{01\_data\_exploration}, \texttt{02\_metric\_baseline},
+\texttt{03\_log\_component}, \texttt{04\_fusion}), die erzeugten Abbildungen
+im Verzeichnis \texttt{docs/} sowie die 13~Unit-Tests in
+\texttt{tests/test\_pipeline.py}.
+
+Ergänzend liegt im Repository ein \texttt{Dockerfile} vor, das eine einfache
+Jupyter-Lab-Umgebung auf Basis von Python~3.12 mit den benötigten Abhängigkeiten
+bereitstellt. Es dient der lokalen Reproduzierbarkeit der Notebook-Ausführung und
+ist nicht als produktionsreife Deployment-Umgebung zu verstehen. Der Container kann
+aus dem Repository-Wurzelverzeichnis mit
+\texttt{docker build -t cloudanobench-thesis .}
+gebaut und anschließend mit
+\texttt{docker run -p 8888:8888 cloudanobench-thesis}
+gestartet werden.

@@ -1,0 +1,397 @@
+% !TeX encoding = UTF-8
+% !TeX root = thesis.tex
+
+% ---------------------------------------------------------------------------
+\section{Datensatz und Datenaufbereitung}
+% ---------------------------------------------------------------------------
+
+\subsection{CloudAnoBench und Datenbasis}
+
+Grundlage der Untersuchung ist CloudAnoBench~\cite{zou2025cloudanobench}, ein synthetischer Benchmark zur multimodalen Anomalieerkennung in Cloud-Umgebungen. Der Datensatz stellt für jede Beobachtungseinheit sowohl Zeitreihendaten von Systemmetriken als auch zugehörige Log-Dateien bereit und eignet sich damit explizit für eine hybride Analyse, wie sie in dieser Arbeit untersucht wird. Es sei ausdrücklich darauf hingewiesen, dass CloudAnoBench ein neuerer Benchmark ist, der noch nicht als etablierter Goldstandard der Community gilt; die Ergebnisse dieser Arbeit sind daher im Kontext dieses spezifischen Datensatzes zu interpretieren.
+
+Der Datensatz umfasst drei inhaltlich distinkte Typen: \emph{mali} (maliciously anomalous), \emph{anom} (non-malicious anomalous) und \emph{norm} (normal). Die Unterscheidung ist für die binäre Klassifikationsaufgabe relevant, da nur mali-Instanzen als positiv (Label~1) und anom sowie norm als negativ (Label~0) kodiert werden. Anom-Fälle stellen dabei nicht-maliziöse technische Anomalien dar, die von einem Sicherheitsdetektor korrekt als unbedenklich eingestuft werden sollen; eine hohe Verwechselungsrate zwischen mali und anom wäre operativ besonders kostspielig~\cite{zou2025cloudanobench}. Norm-Cases repräsentieren planmäßigen Betrieb, der aufgrund ressourcenintensiver, aber nicht-maliziöser Aktivitäten~--- etwa Backup- oder Batch-Prozesse~--- metrisch auffällig wirken kann. Solche Fälle wurden im Kontext dieser Arbeit als besonders relevante Quelle von Fehlalarmen identifiziert; in der Evaluation werden sie über eine separate $\text{FPR}_{\text{norm}}$ ausgewertet.
+
+\begin{table}[htb]
+  \centering
+  \caption{Datenbasis: Zeilen und Cases nach Typ}
+  \label{tab:datenbasis}
+  \begin{tabular}{lrrrr}
+    \hline
+    \textbf{Typ} & \textbf{Zeilen (roh)} & \textbf{Zeilen (clean)} & \textbf{Cases} & \textbf{Label} \\
+    \hline
+    mali  & 19\,385 & 19\,384 & 223 & positiv (1) \\
+    anom  & 41\,400 & 41\,400 & 460 & negativ (0) \\
+    norm  & 51\,208 & 51\,208 & 569 & negativ (0) \\
+    \hline
+    \textbf{Gesamt} & \textbf{111\,993} & \textbf{111\,992} & \textbf{1\,252} & \\
+    \hline
+  \end{tabular}
+\end{table}
+
+Tabelle~\ref{tab:datenbasis} fasst die Datenbasis zusammen. Lediglich eine einzige Zeile in mali wurde beim Bereinigungsschritt entfernt (0{,}01~\%), was die Datenqualität als insgesamt hoch ausweist. Allen 1\,252 Cases ist genau eine Log-Datei zugeordnet; kein Fall weist eine fehlende Log-Datei auf. Der Datensatz deckt insgesamt 45 verschiedene Szenarien ab~\cite{zou2025cloudanobench}.
+
+\subsection{Datenqualität und Preprocessing}
+
+Die Rohdaten liegen im CSV-Format vor und weisen zwei typische Qualitätsprobleme auf. Erstens enthalten einige Felder residuale Anführungszeichen aus einer überlagerten CSV-Kodierung (Parameter \texttt{quoting=3} beim Einlesen), die durch eine explizite Zeichenkettenbereinigung entfernt werden. Zweitens sind numerische Felder in einigen Dateien als Zeichenketten kodiert und müssen in Fließkommazahlen überführt werden.
+
+Die Median-Imputation fehlender Werte erfolgt in zwei inhaltlich getrennten Kontexten: In Phase~1 wird für die explorative Datenanalyse und die Erstellung der bereinigten Parquet-Artefakte eine Self-Fit-Imputation auf den jeweils vollständig verfügbaren Typ-Daten durchgeführt. Dieser Schritt dient ausschließlich der Datenvorbereitung und Visualisierung; er hat keinen Evaluationsbezug. Für alle evaluationsrelevanten Schritte in Phase~2 und Phase~4 werden die Medianwerte hingegen ausschließlich auf dem Trainingsanteil berechnet, in \texttt{data/processed/mali\_train\_medians.json} gespeichert und danach ohne Neufittung auf die Testdaten angewendet. Diese Trennung schützt vor einem verbreiteten Fehler bei der Vorverarbeitung, der in der Literatur als \emph{data leakage} bezeichnet wird~\cite{kaufman2012leakage}.
+
+Die Wahl des Medians gegenüber dem arithmetischen Mittel ist durch die Verteilung der Metriken motiviert: Systemmetriken wie \texttt{net\_out} zeigen häufig eine rechtsschiefe Verteilung mit einzelnen Ausreißerspitzen, gegen die der Median robust ist~\cite{huber2009robust}.
+
+\subsection{Canonical Feature Set und universelle Features}
+\label{sec:features}
+
+Jeder der drei Datensatztypen wird mit einem unterschiedlichen Satz von Systemmetriken erfasst, was auf unterschiedliche Monitoring-Konfigurationen je Datensatztyp hindeutet~\cite{zou2025cloudanobench}. Um eine einheitliche Datengrundlage zu schaffen, wird eine \emph{kanonische Feature-Matrix} mit 34 Features aufgebaut, die die Vereinigung aller je gemessenen Metriken darstellt. Fehlende Spalten werden mit \texttt{NaN} aufgefüllt.
+
+Von diesen 34 Features sind lediglich fünf in allen drei Datensatztypen vorhanden:
+
+\begin{center}
+\texttt{cpu\_usage},\quad \texttt{mem\_usage},\quad \texttt{disk\_io},\quad \texttt{net\_in},\quad \texttt{net\_out}
+\end{center}
+
+Die verbleibenden 29 Features sind typspezifisch und strukturell in mindestens einem Typ vollständig als \texttt{NaN} belegt: In mali fehlen 28~von~34 Features strukturell, in anom~23 und in norm lediglich~6. Das Ausmaß dieser strukturellen Fehlwerte ist kein Zufallsartefakt, sondern spiegelt direkt die unterschiedlichen Erhebungsmethoden je Datensatztyp wider. Abbildung~\ref{fig:feat_dist} zeigt die Verteilung der fünf universellen Features getrennt nach Klasse.
+
+\begin{figure}[htb]
+  \centering
+  \includegraphics[width=0.95\textwidth]{../docs/feature_distributions}
+  \caption{Verteilung der fünf universellen Features nach Klasse (positiv = mali, negativ = anom/norm).}
+  \label{fig:feat_dist}
+\end{figure}
+
+\subsection{Leakage-Vermeidung und Split-Strategie}
+
+Für eine leakage-sichere Evaluation werden Trainings- und Testmenge anhand von Gruppen getrennt, die jeweils die Kombination aus \texttt{dataset\_type} und \texttt{scenario\_id} bilden. Die Verwendung von \texttt{GroupShuffleSplit}~\cite{roberts2017cross} stellt sicher, dass kein Szenario sowohl in der Trainings- als auch in der Testmenge vertreten ist. Beobachtungen innerhalb desselben Szenarios sind strukturell korreliert; eine zufällige Aufteilung ohne Berücksichtigung dieser Gruppenstruktur würde die Trennleistung im Test systematisch überschätzen.
+
+Der Split erfolgt im Verhältnis 80/20 mit \texttt{random\_state=42}. Auf Zeilenebene (Phase~2) ergibt sich ein Trainingsset von 89\,222~Zeilen und ein Testset von 22\,770~Zeilen; auf Case-Ebene (Phase~3 und~4) sind es 999~Trainingsfälle und 253~Testfälle. Das Klassenungleichgewicht beträgt im Trainingsset annähernd 4{,}92:1 (negativ zu positiv).
+
+% ---------------------------------------------------------------------------
+\section{Metrik-basierte Baseline}
+% ---------------------------------------------------------------------------
+
+\subsection{Modellwahl und Hyperparameter}
+
+Als Baseline-Modell für den metrikbasierten Anomalie-Detektor wird XGBoost~\cite{chen2016xgboost} eingesetzt. XGBoost implementiert Gradient Boosting über Entscheidungsbäume und ist durch die \texttt{hist}-Methode (histogrammbasiertes Split-Finding) auch für größere Datensätze effizient anwendbar. Für tabellarisch strukturierte Daten mit gemischten Skalen stellt XGBoost eine gut validierte Wahl dar.
+
+Als Optimierungsmetrik wird der Wert der Fläche unter der Precision-Recall-Kurve (\emph{AUCPR}) gewählt. Bei stark unbalancierten Klassifikationsproblemen ist AUCPR gegenüber dem ROC-AUC informativer, da Letzterer die Leistung im negativen Regime übergewichtet~\cite{davis2006relationship,saito2015precision}. Das vorliegende Klassenungleichgewicht von annähernd 4{,}92:1 erfüllt diese Voraussetzung~\cite{hegarcia2009learning}.
+
+Das Klassenungleichgewicht wird in der XGBoost-Verlustfunktion über den Hyperparameter \texttt{scale\_pos\_weight} berücksichtigt. Der Wert von~4{,}92 wird aus der Trainingsverteilung bestimmt. Als Optimierungsmetrik dient AUCPR. Early Stopping ist mit 20 Runden aktiviert. Das beste Modell wurde nach Iteration~109 von 129 beobachteten Iterationen ausgewählt. In dieser prototypischen Einzelsplit-Evaluation wurde Early Stopping auf dem Holdout-Testset überwacht, da kein separater Validierungssplit angelegt wurde. Diese Konfiguration wird in Abschnitt~\ref{sec:limit} als methodische Einschränkung ausgewiesen.
+
+\begin{table}[htb]
+  \centering
+  \caption{XGBoost-Hyperparameter (Phase~2)}
+  \label{tab:xgb_params}
+  \begin{tabular}{ll}
+    \hline
+    \textbf{Parameter} & \textbf{Wert} \\
+    \hline
+    \texttt{tree\_method}      & \texttt{hist} \\
+    \texttt{eval\_metric}      & \texttt{aucpr} \\
+    \texttt{scale\_pos\_weight} & 4{,}92 \\
+    \texttt{random\_state}     & 42 \\
+    Early Stopping             & aktiv (beste Iteration: 109) \\
+    \hline
+  \end{tabular}
+\end{table}
+
+\subsection{Schema-Leakage und Feature-Reduktion}
+
+Eine direkte Verwendung der vollständigen kanonischen 34-Feature-Matrix würde ein gravierendes Datenleck-Problem erzeugen. Die 29 typspezifischen Features sind strukturell in bestimmten Typen als \texttt{NaN} belegt: Ein Modell, das auf dieser Matrix trainiert, kann das bloße Muster fehlender Werte zur Bestimmung des Datensatztyps -- und damit der Klassenzugehörigkeit -- nutzen, noch bevor es irgendein inhaltlichen Signal verarbeitet hat. Kaufman~et~al.~\cite{kaufman2012leakage} bezeichnen diese Konstellation als \emph{Target Leakage}, da die Feature-Struktur die Zielvariable implizit enkodiert.
+
+Phase~2 wird daher ausschließlich auf den fünf universellen Features trainiert und evaluiert (vgl. Abschnitt~\ref{sec:features}). Diese sind in allen drei Datensatztypen vorhanden und tragen kein typspezifisches Strukturmuster. Die Beschränkung auf diese fünf Features ist eine notwendige Voraussetzung für eine methodisch valide Evaluation; sie schränkt jedoch gleichzeitig die Ausdrucksstärke des Modells ein, was sich in den Ergebnissen widerspiegelt.
+
+\subsection{Ergebnisse der Metrik-Baseline}
+
+\begin{table}[htb]
+  \centering
+  \caption{Ergebnisse der Metrik-Baseline (XGBoost, Zeilenebene, Testset $n=22\,770$)}
+  \label{tab:baseline_results}
+  \begin{tabular}{ll}
+    \hline
+    \textbf{Metrik} & \textbf{Wert} \\
+    \hline
+    Average Precision (AP)     & 0{,}2326 \\
+    Threshold (Recall $\geq$ 0{,}95) & 0{,}0222 \\
+    Recall @ Threshold         & 0{,}9500 \\
+    Precision @ Threshold      & 0{,}2180 \\
+    F1-Maß @ Threshold         & 0{,}3546 \\
+    FPR gesamt                 & 0{,}7980 (14\,724 / 18\,450 Negative) \\
+    FPR anom                   & 0{,}8042 (5\,501 / 6\,840) \\
+    FPR norm                   & 0{,}7944 (9\,223 / 11\,610) \\
+    Inferenz-Latenz            & 52{,}1\,ms (22\,770 Zeilen) \\
+    \hline
+  \end{tabular}
+\end{table}
+
+Tabelle~\ref{tab:baseline_results} fasst die Ergebnisse zusammen. Der XGBoost-Detektor erreicht bei einem Threshold von 0{,}0222 einen Recall von 0{,}950 und erfüllt damit die harte Nebenbedingung ($\geq$ 0{,}95). Zugleich ist die False-Positive-Rate mit 79{,}8~\% außerordentlich hoch: Von 18\,450 negativen Testinstanzen werden 14\,724 fälschlicherweise als positiv klassifiziert. Dieser Befund ist auf die Kombination zweier Faktoren zurückzuführen: Erstens stehen lediglich fünf Features zur Verfügung, die für sich genommen eine begrenzte Trennstärke besitzen. Zweitens erzwingt die Recall-Nebenbedingung einen sehr niedrigen Entscheidungs-Threshold von~0{,}0222, der zwangsläufig einen großen Teil der Negativen als positiv markiert.
+
+Abbildung~\ref{fig:pr_baseline} zeigt die zugehörige Precision-Recall-Kurve. Abbildung~\ref{fig:feat_imp} visualisiert die Feature-Importances des trainierten Modells nach dem Gain-Kriterium.
+
+\begin{figure}[htb]
+  \centering
+  \includegraphics[width=0.78\textwidth]{../docs/pr_curve_baseline}
+  \caption{Precision-Recall-Kurve der Metrik-Baseline (AP = 0{,}233). Der markierte Punkt entspricht dem gewählten Threshold~0{,}0222 bei Recall = 0{,}950.}
+  \label{fig:pr_baseline}
+\end{figure}
+
+\begin{figure}[htb]
+  \centering
+  \includegraphics[width=0.78\textwidth]{../docs/feature_importance_baseline}
+  \caption{Feature-Importances (Gain) des XGBoost-Modells auf den fünf universellen Features.}
+  \label{fig:feat_imp}
+\end{figure}
+
+Die Metrik-Baseline liefert damit eine klar interpretierbare Ausgangssituation: Nahezu alle malignen Cases werden erkannt, jedoch zum Preis einer sehr hohen Fehlalarmrate von 79{,}8~\%, die den Wert der metrischen Erkennung allein einschränkt. Diese Beobachtung motiviert die in Abschnitt~\ref{sec:log} vorgestellte log-basierte Nachfilterung.
+
+% ---------------------------------------------------------------------------
+\section{Log-basierte Verifikation}
+\label{sec:log}
+% ---------------------------------------------------------------------------
+
+\subsection{Log-Daten auf Case-Ebene}
+
+Für jeden der 1\,252 Cases liegt eine zugehörige Log-Datei vor. Im Gegensatz zur metrischen Analyse, die auf Zeilenebene (einzelne Messpunkte) operiert, erfolgt die Log-Analyse auf Case-Ebene: Jede Log-Datei wird als ein einzelnes Dokument behandelt, dem genau ein binäres Label zugewiesen ist. Log-Daten enthalten qualitative Textinformationen über Systemereignisse, Fehlermeldungen und Prozessabläufe, die Metriken allein nicht abbilden können. He~et~al.~\cite{he2021survey} zeigen in ihrer Übersicht, dass automatisierte Log-Analyse ein etabliertes Werkzeug im Reliability Engineering ist und textbasierte Merkmale relevante Signale für die Anomalieerkennung liefern.
+
+Von 1\,252 Cases des Gesamtdatensatzes entfallen nach dem gruppierten Split 999~Fälle auf das Trainingsset und 253~auf das Testset. Im Testset befinden sich 48~positive (mali), 76~anom und 129~norm-Cases.
+
+\subsection{TF-IDF-Vektorisierung}
+
+Die Textrepräsentation erfolgt mit \emph{Term Frequency -- Inverse Document Frequency} (TF-IDF). TF-IDF gewichtet Terme nach ihrer Auftretenshäufigkeit im Dokument, normiert dabei jedoch durch die Häufigkeit über alle Dokumente hinweg, sodass häufige, wenig diskriminierende Terme abgewertet werden. TF-IDF stellt eine interpretierbare und effizient trainierbare Baseline dar; fortgeschrittenere Ansätze wie Log-Parser oder Embedding-Methoden wurden im Rahmen dieser Arbeit nicht untersucht und bilden eine naheliegende Erweiterung. Für Log-Daten ist die TF-IDF-Gewichtung dennoch sinnvoll, da generische Systemereignisse (z.\,B. regelmäßige Statusmeldungen) häufig auftreten, aber geringe Trennkraft besitzen~\cite{he2021survey}.
+
+\begin{table}[htb]
+  \centering
+  \caption{TF-IDF-Konfiguration (Phase~3)}
+  \label{tab:tfidf_params}
+  \begin{tabular}{ll}
+    \hline
+    \textbf{Parameter} & \textbf{Wert} \\
+    \hline
+    \texttt{max\_features}  & 10\,000 \\
+    \texttt{ngram\_range}   & (1,\,2) \\
+    \texttt{sublinear\_tf}  & \texttt{True} \\
+    \texttt{min\_df}        & 2 \\
+    Fit                     & ausschließlich auf Trainingsfälle \\
+    \hline
+  \end{tabular}
+\end{table}
+
+Der Vektorisierer wird ausschließlich auf den 999~Trainingsfällen gefittet; das Test-Vokabular wird nicht einbezogen~\cite{kaufman2012leakage}. Die Verwendung von Bigrammen erlaubt die Erfassung kurzer Wortfolgen, die in Log-Meldungen häufig als feste Phrasen auftreten; der Parameter \texttt{ngram\_range} ist auf \texttt{(1,\,2)} gesetzt. Mit \texttt{sublinear\_tf=True} wird die rohe Termfrequenz durch ihren Logarithmus ersetzt, um sehr häufige Terme nicht unverhältnismäßig zu gewichten. Das resultierende Vokabular umfasst 10\,000~Terme; die Trainings- und Testmatrix haben die Dimension $(999 \times 10\,000)$ bzw. $(253 \times 10\,000)$.
+
+\subsection{Logistische Regression}
+
+Auf der TF-IDF-Matrix wird eine logistische Regression trainiert. Lineare Klassifikatoren auf sparse hochdimensionalen Textmatrizen sind für diese Problemklasse eine gut erprobte Wahl; die Implementierung erfolgt über die logistische Regression aus scikit-learn~\cite{pedregosa2011scikit}. Der \texttt{lbfgs}-Solver ist auf mittelgroßen Datensätzen numerisch stabil und effizient einsetzbar. Das Klassenungleichgewicht (Trainingsverhältnis $\approx$~4{,}71:1) wird durch \texttt{class\_weight=`balanced'} ausgeglichen, das die Verlustfunktion proportional zu den Klassengrößen gewichtet.
+
+\begin{table}[htb]
+  \centering
+  \caption{Hyperparameter der logistischen Regression (Phase~3)}
+  \label{tab:logreg_params}
+  \begin{tabular}{ll}
+    \hline
+    \textbf{Parameter} & \textbf{Wert} \\
+    \hline
+    \texttt{class\_weight} & \texttt{balanced} \\
+    \texttt{solver}        & \texttt{lbfgs} \\
+    \texttt{C}             & 1{,}0 \\
+    \texttt{max\_iter}     & 1\,000 \\
+    \hline
+  \end{tabular}
+\end{table}
+
+Abbildung~\ref{fig:tfidf_feat} visualisiert die 20~einflussreichsten Terme des Modells nach Koeffizientengröße, getrennt nach positiv und negativ gewichteten Termen.
+
+\begin{figure}[htb]
+  \centering
+  \includegraphics[width=0.88\textwidth]{../docs/tfidf_top_features}
+  \caption{Top-20 TF-IDF-Terme nach Koeffizientengröße. Positiv gewichtete Terme sind stärker mit malignen Cases assoziiert; negativ gewichtete Terme treten häufiger in benignen Cases auf.}
+  \label{fig:tfidf_feat}
+\end{figure}
+
+\subsection{Ergebnisse der Log-Komponente}
+
+\begin{table}[htb]
+  \centering
+  \caption{Ergebnisse der Log-Komponente (TF-IDF + LogReg, Case-Ebene, Testset $n=253$)}
+  \label{tab:log_results}
+  \begin{tabular}{ll}
+    \hline
+    \textbf{Metrik} & \textbf{Wert} \\
+    \hline
+    Average Precision (AP)     & 0{,}7771 \\
+    Threshold (Recall $\geq$ 0{,}95) & 0{,}1923 \\
+    Recall @ Threshold         & 0{,}9583 \\
+    Precision @ Threshold      & 0{,}4600 \\
+    F1-Maß @ Threshold         & 0{,}6216 \\
+    FPR gesamt                 & 0{,}2634 (54 / 205 Negative) \\
+    FPR anom                   & 0{,}2368 (18 / 76) \\
+    FPR norm                   & 0{,}2791 (36 / 129) \\
+    Inferenz-Latenz            & 0{,}6\,ms (253 Cases) \\
+    \hline
+  \end{tabular}
+\end{table}
+
+Tabelle~\ref{tab:log_results} zeigt die Ergebnisse der Log-Komponente. Die False-Positive-Rate sinkt gegenüber der Metrik-Baseline von 79{,}8~\% auf 26{,}3~\% -- eine Reduktion von mehr als 53~Prozentpunkten -- während der Recall von 0{,}958 die Nebenbedingung klar erfüllt. Abbildung~\ref{fig:pr_log} zeigt die zugehörige PR-Kurve.
+
+Ein direkter numerischer Vergleich der Average-Precision-Werte (0{,}2326 Metrik-Baseline vs. 0{,}7771 Log-Komponente) ist nur eingeschränkt aussagekräftig. Die Metrik-Baseline wird auf Zeilenebene bewertet (22\,770~Testzeilen). Die Log-Komponente wird dagegen auf Case-Ebene mit 253~Testfällen evaluiert. Unterschiedliche Evaluationsgranularitäten führen zu strukturell nicht vergleichbaren PR-Kurven. Aussagekräftig ist hingegen der direkte Vergleich der FPR-Werte auf Case-Ebene (vgl. Abschnitt~\ref{sec:ablation}).
+
+\begin{figure}[htb]
+  \centering
+  \includegraphics[width=0.78\textwidth]{../docs/pr_curve_log}
+  \caption{Precision-Recall-Kurve der Log-Komponente (AP = 0{,}777). Der markierte Punkt entspricht dem Threshold~0{,}192 bei Recall = 0{,}958.}
+  \label{fig:pr_log}
+\end{figure}
+
+% ---------------------------------------------------------------------------
+\section{Hybride Fusion und Evaluation}
+% ---------------------------------------------------------------------------
+
+\subsection{Aggregation auf Case-Ebene}
+
+Die metrische Phase~2 operiert auf Zeilenebene: Für jede Zeile eines Cases wird eine Wahrscheinlichkeit $\hat{p}_{\text{metric}}$ berechnet. Um diesen Zeilenscore auf Case-Ebene zu aggregieren, wird das Maximum über alle Zeilen eines Cases verwendet:
+\[
+  \hat{p}_{\text{case}} = \max_{i \in \text{case}} \hat{p}_{\text{metric},i}
+\]
+Diese Max-Pooling-Operation entspricht der Annahme, dass ein einzelner anomaler Messpunkt innerhalb eines Cases als hinreichendes Indiz für Malicious-Aktivität gewertet werden kann. Dieses Prinzip ist konzeptuell verwandt mit der Aggregationslogik im Multiple-Instance Learning~\cite{maron1998mil}, bei dem ein Bag (hier: Case) als positiv gilt, wenn mindestens eine seiner Instanzen (hier: Zeilen) positiv ist. Die Max-Aggregation wird mit einem Threshold von~0{,}0222 zu einem binären \texttt{metric\_trigger} konvertiert.
+
+Im Testset von 253~Cases ergibt diese Aggregation folgende Verteilung:
+
+\begin{center}
+  \texttt{metric\_trigger = 1}: 252~Cases \quad
+  \texttt{metric\_trigger = 0}: 1~Case
+\end{center}
+
+Dieser Befund ist zentral für die Interpretation der nachfolgenden Fusion und wird in Abschnitt~\ref{sec:degeneration} ausführlich diskutiert.
+
+\subsection{AND-Gate-Fusion und Soft Score}
+
+Die Fusionsstufe kombiniert den binären Metriktrigger mit der log-basierten Klassifikation zu einem Alert-Signal. Es wurden zwei Fusionsstrategien untersucht:
+
+\textbf{AND-Gate-Fusion (hart):}
+\[
+  \text{alert} = \mathbf{1}[\texttt{metric\_trigger} = 1 \;\wedge\; \texttt{log\_trigger} = 1]
+\]
+Das AND-Gate setzt einen Alert nur dann, wenn \emph{beide} Komponenten positiv entscheiden. Die konzeptuelle Motivation besteht darin, dass die Log-Komponente als Nachfilter wirkt: Nur Cases, die auch metrisch auffällig sind, werden auf Basis ihres Log-Kontexts abschließend bewertet~\cite{kittler1998combining}.
+
+\textbf{Soft-Fusion:}
+\[
+  s_{\text{fusion}} = \hat{p}_{\text{case}} \times \hat{p}_{\text{log}}
+\]
+Der Soft Score ist das Produkt der metrischen Case-Wahrscheinlichkeit und der log-basierten Wahrscheinlichkeit (vgl.~\cite{kittler1998combining}). Da beide Faktoren im Intervall $[0,\,1]$ liegen, gilt dies auch für $s_{\text{fusion}}$. Auf Basis dieses Scores kann eine vollständige PR-Kurve berechnet werden.
+
+\subsection{Ablation-Studie}
+\label{sec:ablation}
+
+Tabelle~\ref{tab:ablation} stellt alle Systemvarianten auf Case-Ebene gegenüber. Abbildung~\ref{fig:ablation_pr} überlagert die PR-Kurven der einzelnen Varianten; Abbildung~\ref{fig:fpr_comp} zeigt den FPR-Vergleich als Balkendiagramm.
+
+\begin{table}[htb]
+  \centering
+  \caption{Ablation-Ergebnisse auf Case-Ebene (Testset: 253~Cases, davon 48~positiv)}
+  \label{tab:ablation}
+  \resizebox{\linewidth}{!}{%
+  \begin{tabular}{lccccccc}
+    \hline
+    \textbf{Variante} & \textbf{AP}$^*$ & \textbf{Recall} & \textbf{Precision} & \textbf{F1} & \textbf{FPR ges.} & \textbf{FPR anom} & \textbf{FPR norm} \\
+    \hline
+    Metric-only (Zeilen)$^\dagger$ & 0{,}233 & 0{,}950 & 0{,}218 & 0{,}355 & 0{,}798 & 0{,}804 & 0{,}794 \\
+    Log-only (Case)     & 0{,}777 & 0{,}958 & 0{,}460 & 0{,}622 & 0{,}263 & 0{,}237 & 0{,}279 \\
+    AND-Fusion          & --      & 0{,}958 & 0{,}460 & 0{,}622 & 0{,}263 & 0{,}237 & 0{,}279 \\
+    Soft-Fusion         & 0{,}576 & 0{,}958 & 0{,}460 & 0{,}622 & 0{,}263 & 0{,}237 & 0{,}279 \\
+    \hline
+    \multicolumn{8}{l}{$^*$ AP Metric-only auf Zeilenebene; übrige auf Case-Ebene -- kein direkter Vergleich.} \\
+    \multicolumn{8}{l}{$^\dagger$ Zur Referenz; FPR bezieht sich auf 22\,770~Zeileninstanzen.} \\
+  \end{tabular}}%
+\end{table}
+
+\begin{figure}[htb]
+  \centering
+  \includegraphics[width=0.78\textwidth]{../docs/pr_curve_ablation}
+  \caption{Precision-Recall-Kurven der Case-Level-Ablation. Die Metrik-only-Kurve verwendet den case-aggregierten Score $\hat{p}_{\text{case}}$ nach Max-Pooling und ist daher nicht identisch mit der zeilenbasierten AP der Metrik-Baseline aus Tabelle~\ref{tab:baseline_results}. Die Soft-Fusion-Kurve basiert auf dem Produkt-Score $s = \hat{p}_{\text{case}} \times \hat{p}_{\text{log}}$. AP-Werte über unterschiedliche Evaluationsgranularitäten sind nur eingeschränkt direkt vergleichbar.}
+  \label{fig:ablation_pr}
+\end{figure}
+
+\begin{figure}[htb]
+  \centering
+  \includegraphics[width=0.82\textwidth]{../docs/fpr_comparison}
+  \caption{Vergleich der False-Positive-Rate zwischen Metrik-Baseline, Log-Komponente und Fusion, aufgeschlüsselt nach Datensatztyp (gesamt, anom, norm).}
+  \label{fig:fpr_comp}
+\end{figure}
+
+Die zentralen Befunde lassen sich wie folgt zusammenfassen: Die Log-Komponente reduziert die FPR von 79{,}8~\% auf 26{,}3~\% (-53{,}5~Prozentpunkte, -67~\% relativ) und erhöht dabei den Recall minimal von 0{,}950 auf 0{,}958. AND-Fusion und Soft-Fusion liefern hinsichtlich FPR, Recall, Precision und F1 identische Werte wie Log-only. Das Ranking nach Average Precision ergibt: Log-only (0{,}777) $>$ Soft-Fusion (0{,}576).
+
+\subsection{AND-Gate-Degeneration}
+\label{sec:degeneration}
+
+Ein wesentlicher empirischer Befund dieser Arbeit ist die Degeneration des AND-Gates. Von den 253~Test-Cases wird 252 ein \texttt{metric\_trigger=1} zugewiesen -- lediglich ein einziger Case löst den Metrikdetektor nicht aus. Die AND-Fusion wird damit funktional äquivalent zur reinen Log-Filterung, da die Bedingung \texttt{metric\_trigger=1} nahezu universell erfüllt ist.
+
+Die Ursache liegt in der erzwungenen Kalibrierung des Metrik-Detektors. Die Recall-Nebenbedingung ($\geq$~0{,}95) erzwingt bei begrenzter Ausdrucksstärke der fünf universellen Features einen sehr niedrigen Threshold von~0{,}0222. Ein so niedriger Threshold markiert die überwiegende Mehrheit aller Cases -- unabhängig von ihrer tatsächlichen Klasse -- als metrisch auffällig. Das AND-Gate, das konzeptionell als Zweistufenfilter gedacht ist, verliert dadurch seine Filterfunktion auf Metrikseite vollständig.
+
+Diese Degeneration ist kein Implementierungsfehler, sondern ein direktes Ergebnis der Eigenschaften des Metrik-Detektors auf dem gewählten Datensatz. Sie schränkt die Aussagekraft der AND-Fusion als eigenständige Fusionsstrategie im vorliegenden Experiment ein und muss bei der Interpretation der Ergebnisse transparent benannt werden. Eine Möglichkeit, die Degeneration zu überwinden, wäre die Anhebung des Metrik-Thresholds auf Kosten des Recalls oder der Einsatz eines ausdrucksstärkeren metrischen Detektors (z.\,B. mit mehr Features oder anderen Modellklassen). Beides liegt außerhalb des Rahmens dieser Arbeit.
+
+\subsection{Qualitätssicherung und Reproduzierbarkeit}
+
+Die Kernlogiken der Pipeline werden durch 13~Unit-Tests abgesichert (\texttt{test\_pipeline.py} im Verzeichnis \texttt{tests/}, pytest-Framework). Die Tests sind in vier Klassen gegliedert:
+
+\begin{enumerate}
+  \item \textbf{Canonical Matrix / Preprocessing} (\texttt{TestBuildCanonicalMatrix}, 4~Tests): Prüft die korrekte Behandlung fehlender Spalten, die leakage-sichere Imputation mit Trainings-Medianen, die vollständige NaN-Bereinigung nach Imputation sowie die Koerzion von quotenbehafteten Zeichenketten.
+
+  \item \textbf{Fusion / Soft Score} (\texttt{TestFusionLogic}, 3~Tests): Verifiziert die AND-Gate-Wahr\-heits\-tabelle auf allen vier Eingangskombinationen, die Eigenschaft $\text{FPR}_{\text{Fusion}} \leq \text{FPR}_{\text{Baseline}}$ auf einem synthetischen Testszenario sowie die Wertebereichseigenschaft des Soft Scores ($s_{\text{fusion}} \in [0,1]$).
+
+  \item \textbf{Datenintegrität / GroupShuffleSplit} (\texttt{TestDataIntegrity}, 2~Tests): Stellt sicher, dass keine Gruppe in Train und Test gleichzeitig vorkommt, und prüft das Vorhandensein aller fünf universellen Features in sämtlichen Datensatztypen.
+
+  \item \textbf{Algorithmische Logik} (\texttt{TestAlgorithmicLogic}, 4~Tests): Prüft die Threshold-Auswahllogik (höchster Threshold bei Recall $\geq$ 0{,}95), die Einhaltung der Recall-Nebenbedingung nach Threshold-Anwendung, die korrekte Max-Aggregation auf Case-Ebene sowie die Abwesenheit testexklusiver Terme im TF-IDF-Vokabular.
+\end{enumerate}
+
+Vollständige Reproduzierbarkeit wird durch \texttt{random\_state=42} in allen Splits und im XGBoost-Training sichergestellt. Die Datei \texttt{docs/fusion\_cases.csv} enthält alle 253~Test-Cases mit ihren Zwischen-Scores (\texttt{max\_proba}, \texttt{proba\_log}, \texttt{metric\_trigger}, \texttt{log\_trigger}, \texttt{alert}, \texttt{score\_fusion}) als nachvollziehbarer Audit-Trail.
+
+% ---------------------------------------------------------------------------
+\section{Diskussion und Limitationen}
+% ---------------------------------------------------------------------------
+
+\subsection{Beantwortung der Forschungsfrage}
+
+Die Forschungsfrage lautete, ob eine zweistufige hybride Pipeline die False-Positive-Rate auf CloudAnoBench deutlich senken kann, ohne die Recall-Rate unter~0{,}95 zu drücken. Die Ablation-Ergebnisse in Abschnitt~\ref{sec:ablation} beantworten diese Frage positiv: Die Log-Komponente reduziert die FPR um 53{,}5~Prozentpunkte bei einem Recall von~0{,}958, der die Nebenbedingung klar erfüllt.
+
+Dabei ist das entscheidende Systemelement die Log-Komponente (Phase~3), nicht die AND-Gate-Fusion (Phase~4). Die log-basierte Nachverifikation auf Case-Ebene identifiziert anhand textueller Systemereignismuster, welche Cases trotz metrischer Auffälligkeit nicht als malicious einzustufen sind. Die Fusionsstufe trägt in dieser Konfiguration keinen eigenständigen Beitrag gegenüber der Log-Komponente allein.
+
+\subsection{Rolle des Log-Kontexts}
+
+Die deutliche FPR-Reduktion durch die Log-Komponente lässt sich durch den
+zusätzlichen Informationsgehalt der Log-Daten erklären. Log-Meldungen enthalten
+semantisch reichhaltige Ereignisbeschreibungen. Diese können Ursache und Art
+eines Betriebsvorgangs qualitativ charakterisieren. Metriken hingegen messen quantitative Systemzustände und können zwischen unterschiedlichen Ereignistypen mit identischer Intensität nicht unterscheiden. TF-IDF kann diskriminierende Terme identifizieren, die in malignen Cases systematisch häufiger oder seltener auftreten als in normalen oder anomalen Cases~\cite{he2021survey}.
+
+Die Analyse auf Case-Ebene statt Zeilenebene ist dabei konzeptuell angemessen: Die Entscheidung, ob ein Security-Alert ausgelöst werden soll, bezieht sich auf eine Beobachtungseinheit (Case) als Ganzes, nicht auf einen einzelnen Messpunkt.
+
+\subsection{Grenzen der Metrik-Komponente}
+\label{sec:limits_metric}
+
+Der metrische Detektor erzielt mit einer AP von 0{,}233 eine verhältnismäßig schwache Diskriminationsleistung. Dies ist auf zwei Faktoren zurückzuführen. Erstens beschränkt die Schema-Leakage-Vermeidung (vgl. Abschnitt~\ref{sec:features}) das Modell auf fünf Features, die zwar universell verfügbar, aber in ihrer Kombination nicht hochdiskriminativ für mali gegenüber anom sind. Zweitens erlaubt die Zeilenebene keine Kontextualisierung einzelner Messpunkte: Ein kurzzeitiger Anstieg von \texttt{cpu\_usage} kann sowohl bei einem malignen Vorgang als auch bei normaler Lastspitze auftreten.
+
+Die Konsequenz ist ein sehr niedriger operativer Threshold (0{,}0222), der zur AND-Gate-Degeneration und zur hohen FPR führt. Ein metrischer Detektor mit höherer Ausdrucksstärke -- etwa durch Einbeziehung von Zeitfenster-Aggregaten, typspezifischen Features oder tieferen Modellen -- könnte diese Einschränkungen möglicherweise mildern, ist jedoch mit dem Risiko erhöhten Schema-Leakages verbunden.
+
+\subsection{Methodische Limitationen}
+\label{sec:limit}
+
+Mehrere methodische Einschränkungen begrenzen die Generalisierbarkeit der Befunde und müssen transparent benannt werden.
+
+\textbf{Einzelner Holdout-Split.} Es wurde lediglich ein einziger \texttt{GroupShuffleSplit} mit \texttt{n\_splits=1} durchgeführt. Die Streuung der Ergebnismetriken über verschiedene Splits ist damit unbekannt. Cawley und Talbot~\cite{cawley2010over} zeigen, dass Designentscheidungen, die am Testset orientiert werden, zu Optimismus-Verzerrung führen können. Da Hyperparameter und Threshold in dieser Arbeit auf Basis des einzigen Testsets gewählt wurden, ist ein solcher Bias nicht vollständig ausschließbar.
+
+\textbf{Kleine positive Testmenge.} Das Testset enthält lediglich 48~positive Cases (mali). Konfidenzintervalle für die berichteten Metriken wurden nicht berechnet; die Punktschätzungen der FPR und des Recalls sind daher mit entsprechender Vorsicht zu interpretieren.
+
+\textbf{Synthetischer Datensatz.} CloudAnoBench ist ein synthetisch generierter Datensatz und kein aufgezeichneter Produktions-Traffic. Ob die gelernten Textmuster auf andere Cloud-Umgebungen, andere Log-Formate oder reale Angriffe übertragbar sind, ist durch diese Arbeit nicht untersucht. Arp~et~al.~\cite{arp2022dos} weisen allgemein darauf hin, dass die Übertragbarkeit von im Labor evaluierten ML-Sicherheitsmodellen auf reale Einsatzumgebungen systematisch überschätzt werden kann.
+
+\textbf{Unterschiedliche Evaluationsgranularitäten.} Metrik-Baseline und Log-Komponente werden auf unterschiedlichen Ebenen evaluiert (Zeilen vs. Cases), was einen direkten numerischen Vergleich der AP-Werte ausschließt. Nur auf Case-Ebene sind die FPR-Werte direkt vergleichbar.
+
+\textbf{Early-Stopping-Konfiguration.} Das Early Stopping der Metrik-Baseline wurde auf dem Holdout-Testset überwacht; ein separater Validierungssplit wurde nicht angelegt. Dadurch können die zeilenbasierten Metrik-Ergebnisse leicht optimistisch sein~\cite{cawley2010over}. Da die Metrik-Baseline trotz dieser Konfiguration die schwächere Komponente bleibt und der Operating-Threshold post-hoc unter der Recall-Nebenbedingung gewählt wird, ändert dies nicht die qualitative Interpretation der AND-Gate-Degeneration. Für eine belastbarere Evaluation wären ein separater Validierungssplit oder verschachtelte Validierung erforderlich.
+
+\textbf{Soft-Fusion ohne Mehrwert gegenüber Log-only.} Die Soft-Fusion-Strategie ($s = \hat{p}_{\text{case}} \times \hat{p}_{\text{log}}$) erzielt eine AP von~0{,}5759, die unter der AP der Log-Komponente allein (0{,}7771) liegt. Die Multiplikation mit dem metrischen Faktor dämpft den Log-Score systematisch, ohne einen eigenständigen Informationsgewinn zu liefern. Tax~et~al.~\cite{tax2000combining} zeigen, dass die Produktregel bei abhängigen oder redundanten Repräsentationen gegenüber einfachen Mittelungsstrategien schlechter abschneiden kann. Eine alternative Fusionsgewichtung oder ein kalibrierter metrischer Detektor könnten diesen Nachteil möglicherweise beheben, wurden aber nicht untersucht.
+
+\textbf{Prototypischer Implementierungscharakter.} Die gesamte Pipeline ist in Jupyter Notebooks implementiert und als Forschungsprototyp zu verstehen. Es existiert keine paketierte, produktionsreife Software-Implementierung.
+
+\textbf{Keine Einzelfallanalyse der norm-Cases.} Die Evaluation weist die FPR für norm-Cases (planmäßiger Betrieb, darunter Backup-Vorgänge und Batch-Jobs) separat aus (FPR\textsubscript{norm}~= 27{,}9~\%, 36~von~129~Cases). Eine qualitative Analyse der individuellen falsch positiv klassifizierten norm-Cases~--- etwa hinsichtlich gemeinsamer Log-Muster oder Szenariotypen~--- wurde nicht durchgeführt. Die Zwischenergebnisse aller 253~Test-Cases, einschließlich metrischer und log-basierter Scores, sind in \texttt{docs/fusion\_cases.csv} dokumentiert und stehen für Anschlussanalysen bereit.
+
+\subsection{Skalierbarkeit als konzeptuelle Einordnung}
+
+Konzeptuell ließe sich die Pipeline als verteilbare Abfolge von Filter- und Verifikationsschritten auffassen, etwa in Form einer Map/Reduce-artigen Aufteilung: Die metrische Vorab-Filterung (Phase~2) lässt sich als parallele Map-Operation auf Zeilenebene interpretieren, die log-basierte Verifikation (Phase~3) als fallweise Aggregation (Reduce).
+
+Es ist jedoch ausdrücklich festzuhalten, dass diese Skalierbarkeitsbetrachtung konzeptueller Natur ist. Eine verteilte Implementierung wurde im Rahmen dieser Arbeit weder realisiert noch gemessen. Die berichteten Latenzzeiten (Phase~2: 54{,}7\,ms, Phase~3: 2{,}4\,ms, gesamt sequenziell: 57{,}1\,ms) beziehen sich auf die sequenzielle Ausführung des Fusion-Notebooks auf einem einzelnen Rechner; eine detaillierte Hardware-Spezifikation liegt nicht vor. Die in den Einzelnotizbüchern gemessenen Werte (Phase~2: 52{,}1\,ms, Phase~3: 0{,}6\,ms) können aufgrund abweichender Ausführungskontexte und Laufzeitumgebungen leicht davon abweichen; alle Latenzangaben sind daher als indikative Messungen zu verstehen.
+
+Eine Einbettung der Pipeline in Data-Intelligence-Plattformen wie Databricks oder Snowflake sowie ein automatisiertes Modell-Lifecycle-Management~--- etwa über MLflow zur Überwachung von Model~Drift in dynami\-schen Cloud-Um\-gebungen~--- wären naheliegende Erweiterungen für eine produktionsnahe Umsetzung. Diese Aspekte wurden in der vorliegenden Arbeit weder implementiert noch empirisch evaluiert und liegen außerhalb des Scopes dieser Benchmark-Studie. Die Skalierbarkeitsbetrachtung bleibt daher auf die konzeptuelle Zerlegung der Pipeline in verteilbare Filter- und Verifikationsschritte beschränkt.

@@ -1,0 +1,94 @@
+% !TeX encoding = UTF-8
+
+%===============================================================================
+% Font options are:
+%   plain (default), serif (uses Palladio), sans-serif (uses Paratype Sans)
+%
+% Layout options are:
+%   article (default, no chapters), book (for longer texts, offers \chapter)
+%   Changing this value between LaTeX runs may require deleting the .aux files
+%
+% Paragraph options are:
+%   noparskip (default, no spacing between paragraphs), parskip (spaced)
+%
+% Language options are:
+%   de (default), en
+%   Changing this value between LaTeX runs may require deleting the .aux files
+%
+\documentclass[serif,article,noparskip,de]{agse-thesis}
+\usepackage{amsmath}
+\usepackage{csquotes}
+
+% Global parameters, replace with actual values.
+\newcommand{\thesisTitle}{Reduzierung von False Positives in der Cloud-Sicherheit durch hybride Analyse von Metriken und Log-Kontext: Eine skalierbare Architektur-Studie auf CloudAnoBench}
+% -> You may use \par (but not \\) to format the title. If you do so, you'll
+%    need to manually set the 'pdftitle' attribute below.
+\newcommand{\studentName}{Nirosh Heintze}
+%===============================================================================
+
+\hypersetup{pdftitle={\thesisTitle}}
+\hypersetup{pdfauthor={\studentName}}
+\hypersetup{hidelinks}
+
+\addbibresource{bibliography.bib}
+
+\begin{document}
+
+\coverpage[
+    student/id=5585800,
+    student/mail=niroh04@zedat.fu-berlin.de,
+    thesis/type=Bachelorarbeit,            % optional, default: Bachelorarbeit
+    thesis/group={Arbeitsgruppe Cybersecurity and AI},
+                                           % optional, default: AGSE
+    thesis/advisor={Hamed H. Fard},           % optional
+    thesis/examiner={Prof. Dr.-Ing. habil. Gerhard Wunder},
+   %thesis/examiner/2={},  % kein Zweitprüfer angegeben
+    thesis/date=\today,                    % optional, default: \today
+   %title/size=\LARGE,      % set this value to overwrite automatic font size
+   %abstract/separate       % toggle this to move the abstract to its own page
+]
+{ % Abstract:
+    \noindent
+    Automatisierte Anomalie-Erkennung in Cloud-Infrastrukturen erzeugt häufig eine
+    hohe Rate an Fehlalarmen (\emph{False Positives}), die Analysten belasten und
+    die Reaktionsfähigkeit auf echte Sicherheitsvorfälle beeinträchtigen. Diese Arbeit
+    entwickelt und evaluiert eine zweistufige hybride Pipeline auf dem CloudAnoBench-Datensatz:
+    Ein metrischer Anomalie-Detektor (XGBoost auf fünf universellen Sys\-tem\-me\-tri\-ken)
+    filtert zunächst verdächtige Cases vor; ein log-basierter Validator
+    (TF-IDF-Vektorisierung mit logistischer Regression) verifiziert diese anschließend
+    anhand des Textkontexts der zugehörigen Log-Dateien. Die Evaluation folgt einem
+    leakage-sicheren Ablationsaufbau mit gruppenbasiertem Train-Test-Split.
+
+    Die Log-Komponente reduziert die False-Positive-Rate von 79{,}8\,\% auf 26{,}3\,\%
+    bei einem Recall von 0{,}958, der die geforderte Mindesterkennungsrate von 0{,}95
+    deutlich erfüllt. Ein zentraler empirischer Befund ist die Degeneration des
+    AND-Gates: Der metrische Detektor löst beim gewählten Threshold nahezu alle
+    Test-Cases aus, sodass die AND-Fusion funktional äquivalent zur reinen Log-Filterung
+    wird. Der Log-Kontext erweist sich damit als dominanter Faktor der Pipeline;
+    eine verbesserte Case-Level-Kalibrierung des Metrik-Triggers und eine robustere
+    Evaluation über mehrere Splits bleiben offene Forschungsfragen.
+}
+
+\include{declaration}
+
+\cleardoublepage
+
+\tableofcontents
+
+\cleardoublepage
+
+\pagestyle{fancy}
+
+% Actual content starts here
+
+\input{1_introduction}
+\input{2_fundamentals}
+\input{3_main}
+\input{4_conclusion}
+
+\printbibliography
+
+\appendix
+\include{5_appendix}
+
+\end{document}

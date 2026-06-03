@@ -218,3 +218,38 @@ data/
 # Zusätzlicher Schutz für große Dateien
 *.csv
 *.log
+
+# Keep thesis audit artefact referenced in the appendix
+!docs/fusion_cases.csv
+
+# --- Internal planning and audit notes; not part of submission ---
+notes.md
+THESIS_FACTS_LOCKED.md
+PERPLEXITY_FINAL_LITERATURPRUEFUNG_THESIS.md
+literatur.md
+literaturplan_bachelorarbeit.md
+markdown*.md
+thesis/THESIS_FACTS_LOCKED.md
+thesis/PERPLEXITY_FINAL_LITERATURPRUEFUNG_THESIS.md
+thesis/markdown*.md
+
+
+# Local / editor
+.vscode/
+tmp/
+
+# Internal audit / scratch files
+Eingefügter Text*.txt
+markdown*.md
+notes.md
+PERPLEXITY_FINAL_LITERATURPRUEFUNG_THESIS.md
+THESIS_FACTS_LOCKED.md
+literatur.md
+literaturplan_bachelorarbeit.md
+
+# Literature PDFs / external papers
+Literatur/
+literatur/
+
+# Expose / planning docs
+Expose*.pdf

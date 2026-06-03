@@ -1,0 +1,130 @@
+% !TeX encoding = UTF-8
+% !TeX root = thesis.tex
+
+\section{Einleitung}
+
+% ---------------------------------------------------------------------------
+\subsection{Motivation}
+% ---------------------------------------------------------------------------
+
+Automatisierte Anomalie-Erkennung ist ein zentrales Werkzeug im Betrieb großer
+Cloud-Infrastrukturen. Monitoring-Systeme werten kontinuierlich Systemmetriken aus
+und lösen bei auffälligen Abweichungen Alerts aus. In der Praxis führt dieser Ansatz
+jedoch zu einem hohen Aufkommen an Fehlalarmen (\emph{False Positives}):
+Betriebsschwankungen, reguläre Lastspitzen oder geplante Batch-Jobs erzeugen
+Metrikanomaliemuster, die denen echter Angriffe oder Systemfehler ähneln, ohne es zu sein.
+
+Dieses Phänomen ist in der Literatur als \emph{Alert Fatigue} bekannt und stellt ein
+anerkanntes operatives Problem im Sicherheitsbetrieb dar. Es beeinträchtigt die
+Reaktionsfähigkeit von Analysten auf tatsächliche Vorfälle. Die Reduktion der
+False-Positive-Rate~--- ohne dabei die Erkennungsrate sicherheitsrelevanter Ereignisse
+wesentlich zu senken~--- ist daher eine zentrale Anforderung an praxistaugliche
+Erkennungssysteme. Abschnitt~2.1 ordnet diesen Befund in die Literatur ein.
+
+% ---------------------------------------------------------------------------
+\subsection{Problemstellung}
+% ---------------------------------------------------------------------------
+
+Ein grundlegendes Problem metrischer Anomalie-Detektoren liegt im Zielkonflikt
+zwischen Recall und False-Positive-Rate. Um sicherzustellen, dass keine echten
+Angriffe unentdeckt bleiben (hoher Recall), muss der Entscheidungs-Threshold des
+Detektors niedrig gesetzt werden. Ein niedriger Threshold markiert jedoch
+zwangsläufig auch viele tatsächlich unbedenkliche Instanzen als auffällig, was
+die FPR in die Höhe treibt. Dieser Trade-off ist bei der Verwendung von wenigen,
+universell verfügbaren Metriken besonders ausgeprägt, da solche Features allein
+häufig keine ausreichende Trennschärfe zwischen malignen und benignen Fällen
+bieten.
+
+Log-Dateien liefern einen ergänzenden, qualitativ anderen Informationstyp: Sie
+enthalten prozessuale Beschreibungen von Systemereignissen, die den Kontext einer
+Metrik-Auffälligkeit klären können~\cite{he2021survey}. Eine Lastspitze in der
+CPU-Auslastung kann sowohl bei einem malignen Prozess als auch bei einem legitimen
+Backup-Job auftreten~--- der zugehörige Log-Eintrag hingegen unterscheidet beide
+Fälle in der Regel klar. Log-Daten eignen sich daher als nachgelagerte
+Verifikationsstufe: Alerts, die metrisch ausgelöst wurden, können auf Case-Ebene
+anhand ihres Log-Kontexts gefiltert werden.
+
+Die Kombination beider Signalquellen zu einer hybriden Pipeline~--- einem
+metrischen Trigger gefolgt von einer log-basierten Verifikation~--- ist
+konzeptuell naheliegend. CloudAnoBench~\cite{zou2025cloudanobench} stellt einen
+synthetischen Benchmark bereit, der für jeden überwachten Case sowohl Metriken als
+auch Log-Dateien bereitstellt und damit eine kontrollierte Evaluation eines solchen
+zweistufigen Ansatzes ermöglicht.
+
+% ---------------------------------------------------------------------------
+\subsection{Zielsetzung und Forschungsfrage}
+% ---------------------------------------------------------------------------
+
+Ziel dieser Arbeit ist die Entwicklung und Evaluation einer zweistufigen hybriden
+Anomalie-Erkennungspipeline auf CloudAnoBench. Der Schwerpunkt liegt auf einer
+methodisch kontrollierten Evaluation und der expliziten Diskussion der Grenzen des
+Ansatzes~--- einschließlich unerwarteter Befunde.
+
+Die zentrale Forschungsfrage lautet:
+
+\begin{quote}
+  \emph{Kann eine zweistufige hybride Pipeline~--- bestehend aus einem metrischen
+  Anomalie-Detektor und einer log-basierten Nachfilterung~--- die
+  False-Positive-Rate auf dem CloudAnoBench-Datensatz deutlich senken, ohne die
+  Recall-Rate unter 0{,}95 zu drücken?}
+\end{quote}
+
+Die Arbeit untersucht diese Frage durch einen kontrollierten Ablations-Aufbau, der
+eine rein metrische Baseline, eine log-basierte Komponente sowie zwei
+Fusionsstrategien~--- ein binäres AND-Gate und eine Soft-Fusion~--- miteinander
+vergleicht. Die Evaluation folgt dabei strikten Anforderungen an die Vermeidung
+von Datenleck und eine leakage-sichere Trainings-Test-Trennung.
+
+% ---------------------------------------------------------------------------
+\subsection{Beiträge der Arbeit}
+% ---------------------------------------------------------------------------
+
+Die vorliegende Arbeit leistet die folgenden konkreten Beiträge:
+
+\begin{enumerate}
+  \item \textbf{Reproduzierbare hybride Pipeline auf CloudAnoBench.} Es wird eine
+    in Notebooks dokumentierte, reproduzierbare Pipeline entwickelt, die alle
+    Phasen~--- Datenaufbereitung, Modelltraining, Fusion und Evaluation~--- auf
+    CloudAnoBench umsetzt. Alle Ergebnisse sind durch 13~Unit-Tests und
+    \texttt{random\_state=42} reproduzierbar und nachvollziehbar.
+
+  \item \textbf{Leakage-bewusste metrische XGBoost-Baseline.} Es wird eine
+    metrische Baseline mit XGBoost~\cite{chen2016xgboost} entwickelt, die
+    explizit Schema-Leakage durch strukturelle Fehlwerte adressiert. Die
+    Beschränkung auf fünf universell verfügbare Features ist eine methodisch
+    begründete Entscheidung zur Vermeidung von Target Leakage.
+
+  \item \textbf{Log-basierte Verifikation mit TF-IDF und logistischer Regression.}
+    Es wird eine Case-Ebene-Komponente implementiert, die Log-Dateien mittels
+    TF-IDF vektorisiert und mit logistischer Regression klassifiziert. Die
+    Komponente wird als interpretierbare Baseline~--- nicht als State-of-the-Art-Ansatz~---
+    eingesetzt und gewährleistet durch eine leakage-sichere Trainings-Evaluations-Trennung
+    des Text-Vokabulars eine valide Evaluation.
+
+  \item \textbf{Ablation der Fusionsstrategien einschließlich Degenerationsbefund.}
+    Es werden zwei Fusionsstrategien~--- AND-Gate und Soft-Fusion~--- evaluiert
+    und mit den Einzelkomponenten verglichen. Ein zentraler empirischer Befund
+    ist die Degeneration des AND-Gates: Der metrische Detektor löst beim gewählten
+    Threshold nahezu alle Test-Cases aus, sodass das AND-Gate funktional äquivalent
+    zur reinen Log-Filterung wird. Dieser Befund wird in Abschnitt~3 explizit
+    diskutiert.
+\end{enumerate}
+
+% ---------------------------------------------------------------------------
+\subsection{Aufbau der Arbeit}
+% ---------------------------------------------------------------------------
+
+Abschnitt~2 legt die konzeptionellen und methodischen Grundlagen der Pipeline dar.
+Behandelt werden Cloud-Anoma\-lie\-erkennung, unbalancierte Klassifikation und
+Precision-Recall-Metriken, XGBoost, TF-IDF, Data Leakage und gruppenbasierte
+Validierung sowie Klassifikatorfusion und Case-Level-Aggregation.
+
+Abschnitt~3 beschreibt die Pipeline in vier Phasen: Datenaufbereitung und Leakage-Vermeidung,
+metrische Baseline, log-basierte Verifikation sowie hybride Fusion und Ablation.
+Die Ergebnisse werden durch Tabellen und Abbildungen dokumentiert; unerwartete
+Befunde~--- insbesondere die AND-Gate-Degeneration~--- werden als eigenständige
+Abschnitte behandelt.
+
+Abschnitt~4 diskutiert die Ergebnisse im Hinblick auf die Forschungsfrage,
+bewertet die Rolle der einzelnen Komponenten, benennt die methodischen Limitationen
+der Arbeit und gibt einen Ausblick auf mögliche Erweiterungen.
