@@ -6,8 +6,12 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY notebooks/ notebooks/
-COPY data/ data/
+COPY tests/ tests/
 COPY docs/ docs/
+
+# data/ wird nicht ins Image kopiert (Rohdaten nicht im Repo).
+# Beim Start per Volume mounten: -v "${PWD}/data:/app/data"
+RUN mkdir -p data
 
 EXPOSE 8888
 

@@ -3,6 +3,7 @@
 
 % ---------------------------------------------------------------------------
 \section{Datensatz und Datenaufbereitung}
+\label{sec:data_preparation}
 % ---------------------------------------------------------------------------
 
 \subsection{CloudAnoBench und Datenbasis}
@@ -117,7 +118,7 @@ Phase~2 wird daher ausschließlich auf den fünf universellen Features trainiert
     FPR gesamt                 & 0{,}7980 (14\,724 / 18\,450 Negative) \\
     FPR anom                   & 0{,}8042 (5\,501 / 6\,840) \\
     FPR norm                   & 0{,}7944 (9\,223 / 11\,610) \\
-    Inferenz-Latenz            & 52{,}1\,ms (22\,770 Zeilen) \\
+    Inferenz-Latenz            & 52{,}1\,ms (22\,770 Zeilen, indikativ) \\
     \hline
   \end{tabular}
 \end{table}
@@ -223,7 +224,7 @@ Abbildung~\ref{fig:tfidf_feat} visualisiert die 20~einflussreichsten Terme des M
     FPR gesamt                 & 0{,}2634 (54 / 205 Negative) \\
     FPR anom                   & 0{,}2368 (18 / 76) \\
     FPR norm                   & 0{,}2791 (36 / 129) \\
-    Inferenz-Latenz            & 0{,}6\,ms (253 Cases) \\
+    Inferenz-Latenz            & 0{,}6\,ms (253 Cases, indikativ) \\
     \hline
   \end{tabular}
 \end{table}
@@ -389,6 +390,7 @@ Mehrere methodische Einschränkungen begrenzen die Generalisierbarkeit der Befun
 \textbf{Keine Einzelfallanalyse der norm-Cases.} Die Evaluation weist die FPR für norm-Cases (planmäßiger Betrieb, darunter Backup-Vorgänge und Batch-Jobs) separat aus (FPR\textsubscript{norm}~= 27{,}9~\%, 36~von~129~Cases). Eine qualitative Analyse der individuellen falsch positiv klassifizierten norm-Cases~--- etwa hinsichtlich gemeinsamer Log-Muster oder Szenariotypen~--- wurde nicht durchgeführt. Die Zwischenergebnisse aller 253~Test-Cases, einschließlich metrischer und log-basierter Scores, sind in \texttt{docs/fusion\_cases.csv} dokumentiert und stehen für Anschlussanalysen bereit.
 
 \subsection{Skalierbarkeit als konzeptuelle Einordnung}
+\label{sec:scalability}
 
 Konzeptuell ließe sich die Pipeline als verteilbare Abfolge von Filter- und Verifikationsschritten auffassen, etwa in Form einer Map/Reduce-artigen Aufteilung: Die metrische Vorab-Filterung (Phase~2) lässt sich als parallele Map-Operation auf Zeilenebene interpretieren, die log-basierte Verifikation (Phase~3) als fallweise Aggregation (Reduce).
 

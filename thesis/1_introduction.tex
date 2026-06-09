@@ -75,6 +75,12 @@ Fusionsstrategien~--- ein binäres AND-Gate und eine Soft-Fusion~--- miteinander
 vergleicht. Die Evaluation folgt dabei strikten Anforderungen an die Vermeidung
 von Datenleck und eine leakage-sichere Trainings-Test-Trennung.
 
+Der Begriff \emph{Architektur-Studie} im Titel bezieht sich auf die konzeptuelle
+Zerlegung der Pipeline in metrischen Trigger, log-basierte Verifikation und
+Fusionslogik; eine verteilte Implementierung oder messtechnische
+Skalierungsanalyse ist nicht Gegenstand dieser Arbeit
+(vgl.\ Abschnitt~\ref{sec:scalability}).
+
 % ---------------------------------------------------------------------------
 \subsection{Beiträge der Arbeit}
 % ---------------------------------------------------------------------------
@@ -106,7 +112,7 @@ Die vorliegende Arbeit leistet die folgenden konkreten Beiträge:
     und mit den Einzelkomponenten verglichen. Ein zentraler empirischer Befund
     ist die Degeneration des AND-Gates: Der metrische Detektor löst beim gewählten
     Threshold nahezu alle Test-Cases aus, sodass das AND-Gate funktional äquivalent
-    zur reinen Log-Filterung wird. Dieser Befund wird in Abschnitt~3 explizit
+    zur reinen Log-Filterung wird.     Dieser Befund wird in Abschnitt~\ref{sec:degeneration} explizit
     diskutiert.
 \end{enumerate}
 
@@ -119,7 +125,7 @@ Behandelt werden Cloud-Anoma\-lie\-erkennung, unbalancierte Klassifikation und
 Precision-Recall-Metriken, XGBoost, TF-IDF, Data Leakage und gruppenbasierte
 Validierung sowie Klassifikatorfusion und Case-Level-Aggregation.
 
-Abschnitt~3 beschreibt die Pipeline in vier Phasen: Datenaufbereitung und Leakage-Vermeidung,
+Abschnitt~\ref{sec:data_preparation} beschreibt die Pipeline in vier Phasen: Datenaufbereitung und Leakage-Vermeidung,
 metrische Baseline, log-basierte Verifikation sowie hybride Fusion und Ablation.
 Die Ergebnisse werden durch Tabellen und Abbildungen dokumentiert; unerwartete
 Befunde~--- insbesondere die AND-Gate-Degeneration~--- werden als eigenständige

@@ -65,10 +65,24 @@ Die kompilierte PDF liegt bereits als `thesis/thesis.pdf` vor.
 
 ## Docker (lokale Reproduzierbarkeit)
 
+Die Rohdaten sind nicht im Image enthalten und müssen beim Start als Volume eingebunden werden.
+
 ```bash
 docker build -t cloudanobench-thesis .
-docker run --rm -p 8888:8888 cloudanobench-thesis
+
+# Unix / macOS:
+docker run --rm -p 8888:8888 \
+  -v "${PWD}/data:/app/data" \
+  cloudanobench-thesis
+
+# Windows PowerShell:
+docker run --rm -p 8888:8888 `
+  -v "${PWD}/data:/app/data" `
+  cloudanobench-thesis
 ```
+
+Stelle sicher, dass `data/mali_dataset/`, `data/anom_dataset/` und `data/norm_dataset/`
+im lokalen `data/`-Verzeichnis vorhanden sind, bevor du den Container startest.
 
 Öffne anschließend `http://localhost:8888` im Browser.
 Der Container dient ausschließlich der lokalen Notebook-Reproduzierbarkeit
