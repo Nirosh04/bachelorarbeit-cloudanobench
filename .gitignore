@@ -221,6 +221,14 @@ data/
 
 # Keep thesis audit artefact referenced in the appendix
 !docs/fusion_cases.csv
+!docs/split_assignments.csv
+!docs/metric_test_scores.csv
+!docs/log_test_scores.csv
+!docs/log_val_scores.csv
+!docs/metric_val_scores.csv
+!docs/threshold_sensitivity_log.csv
+!docs/threshold_sensitivity_metric.csv
+!docs/bootstrap_ci.csv
 
 # --- Internal planning and audit notes; not part of submission ---
 notes.md

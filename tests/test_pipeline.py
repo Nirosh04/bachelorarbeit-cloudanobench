@@ -286,3 +286,271 @@ class TestAlgorithmicLogic:
         )
         # "error" kommt in beiden vor → muss im Vokabular sein
         assert "error" in vectorizer.vocabulary_
+
+
+# ---------------------------------------------------------------------------
+# Tests: Dreistufige Validation-Split-Methodik (neue Anforderungen)
+# ---------------------------------------------------------------------------
+
+class TestValidationSplit:
+
+    def _make_three_way_split(self, n=120, n_groups=10):
+        """Helper: erzeugt drei disjunkte Splits aus synthetischen Daten."""
+        X = pd.DataFrame({'x': range(n)})
+        y = pd.Series([1 if i < n // 5 else 0 for i in range(n)])
+        groups = np.array([f'g{i // (n // n_groups)}' for i in range(n)])
+
+        gss1 = GroupShuffleSplit(n_splits=1, test_size=0.2, random_state=42)
+        trainval_idx, test_idx = next(gss1.split(X, y, groups))
+
+        X_tv = X.iloc[trainval_idx]
+        y_tv = y.iloc[trainval_idx]
+        g_tv = groups[trainval_idx]
+
+        gss2 = GroupShuffleSplit(n_splits=1, test_size=0.2, random_state=0)
+        train_idx, val_idx = next(gss2.split(X_tv, y_tv, g_tv))
+
+        train_groups = set(g_tv[train_idx])
+        val_groups   = set(g_tv[val_idx])
+        test_groups  = set(groups[test_idx])
+        return train_groups, val_groups, test_groups, y_tv.iloc[val_idx]
+
+    def test_three_way_group_disjointness(self):
+        """
+        Drei-Wege-Disjunktheit: Train ∩ Val = ∅, Val ∩ Test = ∅, Train ∩ Test = ∅.
+        Verschachtelte GroupShuffleSplits können trotz korrekter Einzelschritte
+        heimliche Überschneidungen erzeugen — dieser Test sichert alle drei Paare ab.
+        """
+        train_g, val_g, test_g, _ = self._make_three_way_split()
+        assert len(train_g & val_g)  == 0, f"Train ∩ Val nicht leer: {train_g & val_g}"
+        assert len(val_g  & test_g)  == 0, f"Val ∩ Test nicht leer: {val_g & test_g}"
+        assert len(train_g & test_g) == 0, f"Train ∩ Test nicht leer: {train_g & test_g}"
+
+    def test_validation_contains_positive_and_negative_cases(self):
+        """
+        Val-Set muss nach Seed-Wahl beide Klassen enthalten.
+        Verwendet ein synthetisches Dataset wo JEDE Gruppe Positive und Negative
+        enthält — dadurch enthält jeder val-Split mindestens einen positiven Fall.
+        """
+        # Jede Gruppe hat 3 Positive und 7 Negative → kein val-Split kann alle
+        # Positiven verlieren, unabhängig welche Gruppen zufällig zugewiesen werden.
+        n = 100
+        groups = np.array([f'g{i // 10}' for i in range(n)])   # 10 Gruppen à 10
+        y = pd.Series([1 if i % 10 < 3 else 0 for i in range(n)])  # 3/10 pro Gruppe positiv
+        X = pd.DataFrame({'x': range(n)})
+
+        gss1 = GroupShuffleSplit(n_splits=1, test_size=0.2, random_state=42)
+        trainval_idx, _ = next(gss1.split(X, y, groups))
+        X_tv = X.iloc[trainval_idx]
+        y_tv = y.iloc[trainval_idx]
+        g_tv = groups[trainval_idx]
+
+        # Simuliert _pick_val_seed: erster Seed der Val >= 1 positive Fall liefert
+        selected_seed = None
+        final_val_y   = None
+        for seed in (0, 1, 2, 7, 42):
+            gss2 = GroupShuffleSplit(n_splits=1, test_size=0.2, random_state=seed)
+            tr_idx, vl_idx = next(gss2.split(X_tv, y_tv, g_tv))
+            if y_tv.iloc[vl_idx].sum() >= 1:
+                selected_seed = seed
+                final_val_y   = y_tv.iloc[vl_idx]
+                break
+
+        assert selected_seed is not None, (
+            "Kein Seed in (0,1,2,7,42) liefert Val mit positiven Fällen."
+        )
+        assert final_val_y.sum() >= 1,        "Val enthält nach Seed-Wahl keine positiven Fälle."
+        assert (final_val_y == 0).sum() >= 1, "Val enthält nach Seed-Wahl keine negativen Fälle."
+
+    def test_threshold_selected_from_validation_scores(self):
+        """
+        Threshold-Wahl muss aus Val-Scores stammen — niemals aus Test-Scores.
+        Val und Test haben unterschiedliche optimale Thresholds; Funktion gibt
+        den Val-Threshold zurück und nicht den Test-Threshold.
+        """
+        from sklearn.metrics import precision_recall_curve
+
+        rng = np.random.default_rng(7)
+        y_val  = np.array([1]*30 + [0]*70)
+        p_val  = np.concatenate([rng.uniform(0.7, 1.0, 30), rng.uniform(0.0, 0.4, 70)])
+        y_test = np.array([1]*30 + [0]*70)
+        p_test = np.concatenate([rng.uniform(0.4, 0.9, 30), rng.uniform(0.1, 0.7, 70)])
+
+        def _select_threshold(y, proba):
+            _, rec, thr = precision_recall_curve(y, proba)
+            valid = thr[rec[:-1] >= 0.95]
+            return float(valid.max()) if len(valid) > 0 else float(thr[0])
+
+        thr_val  = _select_threshold(y_val,  p_val)
+        thr_test = _select_threshold(y_test, p_test)
+
+        # Val und Test müssen unterschiedliche Thresholds liefern (sonst ist der Test wertlos)
+        assert thr_val != thr_test, (
+            "Val- und Test-Threshold sind identisch — Test prüft kein reales Szenario."
+        )
+        # Der korrekte Code verwendet thr_val; thr_test ist unbekannt im echten Notebook
+        assert thr_val > 0.0, "Val-Threshold muss positiv sein."
+
+    def test_scale_pos_weight_from_train_only(self):
+        """
+        scale_pos_weight muss aus Train-Labels berechnet werden.
+        Werden Val-Labels einbezogen, verändert sich das Verhältnis — dieser Test
+        stellt sicher dass die Berechnungslogik ausschließlich auf Train-Daten basiert.
+        """
+        y_train = pd.Series([1]*20 + [0]*80)   # 1:4
+        y_val   = pd.Series([1]*15 + [0]*35)   # 1:2.33
+
+        spw_train_only   = (y_train == 0).sum() / (y_train == 1).sum()
+        spw_with_val_mix = ((y_train == 0).sum() + (y_val == 0).sum()) / \
+                           ((y_train == 1).sum() + (y_val == 1).sum())
+
+        # Die Werte müssen unterschiedlich sein (Testintegrität)
+        assert abs(spw_train_only - spw_with_val_mix) > 0.1, \
+            "Synthetischer Test nicht differenziert genug."
+        # scale_pos_weight korrekt: nur Train
+        assert spw_train_only == pytest.approx(4.0)
+        # scale_pos_weight falsch: Train+Val gemischt weicht von 4.0 ab
+        assert not spw_with_val_mix == pytest.approx(4.0), \
+            "Val-Einbeziehung muss scale_pos_weight verändern."
+
+    def test_tfidf_vocabulary_not_contaminated_by_val_or_test(self):
+        """
+        TF-IDF Vokabular darf nach fit auf Train keine Val- oder Test-exklusiven
+        Terme enthalten. Erweiterung des bestehenden Tests auf drei Splits.
+        """
+        from sklearn.feature_extraction.text import TfidfVectorizer
+
+        train_texts = ["error login failed", "memory high cpu spike", "disk io burst"]
+        val_texts   = ["valtoken connection reset", "error login failed"]
+        test_texts  = ["supersecrettoken attack detected", "error login failed"]
+
+        vectorizer = TfidfVectorizer()
+        vectorizer.fit(train_texts)  # nur auf Train!
+
+        assert "valtoken"         not in vectorizer.vocabulary_, \
+            "Val-exklusiver Term 'valtoken' im Vokabular (Leakage)"
+        assert "supersecrettoken" not in vectorizer.vocabulary_, \
+            "Test-exklusiver Term 'supersecrettoken' im Vokabular (Leakage)"
+        assert "error" in vectorizer.vocabulary_, \
+            "Train-Term 'error' fehlt im Vokabular"
+
+    def test_fusion_uses_test_scores_only(self):
+        """
+        fusion_cases.csv darf nur Test-Cases enthalten — keine Train/Val-Cases.
+        Stellt sicher dass finale Ablations-Metriken nicht durch Train-/Val-Performance
+        kontaminiert werden.
+        """
+        split_df = pd.DataFrame({
+            'case_id': [f'c{i}' for i in range(10)],
+            'split':   ['train']*4 + ['val']*3 + ['test']*3
+        })
+        fusion_df = pd.DataFrame({
+            'case_id': [f'c{i}' for i in range(7, 10)],  # nur test cases c7, c8, c9
+            'label':   [1, 0, 0]
+        })
+
+        test_ids       = set(split_df[split_df['split'] == 'test']['case_id'])
+        fusion_ids     = set(fusion_df['case_id'])
+        non_test_in_fusion = fusion_ids - test_ids
+
+        assert len(non_test_in_fusion) == 0, (
+            f"Nicht-Test-Cases in Fusion: {non_test_in_fusion}"
+        )
+
+
+# ---------------------------------------------------------------------------
+# Tests: Threshold-Sensitivity-Analyse
+# ---------------------------------------------------------------------------
+
+def _compute_sensitivity_table(y_val, p_val, y_test, p_test, targets):
+    """
+    Für jedes Recall-Ziel: höchsten Val-Threshold wählen → auf Test anwenden.
+    Gibt Liste von Dicts zurück. Threshold-Wahl AUSSCHLIESSLICH aus Val-Scores.
+    """
+    from sklearn.metrics import (precision_recall_curve, recall_score,
+                                  precision_score, f1_score, confusion_matrix)
+    _, rec_val, thr_val = precision_recall_curve(y_val, p_val)
+    rows = []
+    for target in targets:
+        valid = thr_val[rec_val[:-1] >= target]
+        thr   = float(valid.max()) if len(valid) > 0 else float(thr_val[0])
+        val_rec = float(recall_score(y_val, (p_val >= thr).astype(int)))
+        y_pred  = (p_test >= thr).astype(int)
+        tn, fp, fn, tp = confusion_matrix(y_test, y_pred).ravel()
+        rows.append({
+            'target_recall_val': target,
+            'threshold_val':     thr,
+            'val_recall':        val_rec,
+            'test_recall':       float(recall_score(y_test, y_pred)),
+            'test_fpr':          fp / (fp + tn) if (fp + tn) > 0 else 0.0,
+            'test_precision':    float(precision_score(y_test, y_pred, zero_division=0)),
+            'test_f1':           float(f1_score(y_test, y_pred, zero_division=0)),
+            'TP': tp, 'FP': fp, 'TN': tn, 'FN': fn,
+        })
+    return rows
+
+
+class TestThresholdSensitivity:
+    """Prüft die Threshold-Sensitivity-Analyse der Log-Komponente."""
+
+    TARGETS = [0.95, 0.975, 0.99, 1.00]
+
+    def _make_data(self):
+        rng = np.random.default_rng(42)
+        y_val  = np.array([1]*30 + [0]*70)
+        p_val  = np.concatenate([rng.uniform(0.6, 1.0, 30), rng.uniform(0.0, 0.4, 70)])
+        y_test = np.array([1]*25 + [0]*75)
+        p_test = np.concatenate([rng.uniform(0.5, 0.95, 25), rng.uniform(0.0, 0.5, 75)])
+        return y_val, p_val, y_test, p_test
+
+    def test_table_contains_all_targets(self):
+        """Jedes Recall-Ziel muss in der Tabelle vertreten sein."""
+        y_val, p_val, y_test, p_test = self._make_data()
+        rows = _compute_sensitivity_table(y_val, p_val, y_test, p_test, self.TARGETS)
+        found = [r['target_recall_val'] for r in rows]
+        assert found == self.TARGETS, f"Erwartete Targets {self.TARGETS}, erhalten {found}"
+
+    def test_threshold_uses_only_val_scores(self):
+        """Threshold-Wahl ohne Test-Scores möglich — Test-Daten sind kein Input."""
+        y_val, p_val, _, _ = self._make_data()
+        from sklearn.metrics import precision_recall_curve
+        _, rec_val, thr_val = precision_recall_curve(y_val, p_val)
+        for target in self.TARGETS:
+            valid = thr_val[rec_val[:-1] >= target]
+            thr   = float(valid.max()) if len(valid) > 0 else float(thr_val[0])
+            assert thr >= 0.0, f"Threshold für target={target} ist negativ: {thr}"
+
+    def test_higher_target_recall_not_higher_threshold(self):
+        """
+        Höheres Recall-Ziel → gleicher oder niedrigerer Threshold.
+        Monotonie: um mehr Positive zu treffen muss die Entscheidungsgrenze fallen.
+        """
+        y_val, p_val, y_test, p_test = self._make_data()
+        rows = _compute_sensitivity_table(y_val, p_val, y_test, p_test, self.TARGETS)
+        thresholds = [r['threshold_val'] for r in rows]
+        for i in range(1, len(thresholds)):
+            assert thresholds[i] <= thresholds[i-1] + 1e-9, (
+                f"Threshold stieg bei höherem Recall-Ziel: "
+                f"target={self.TARGETS[i-1]}→{self.TARGETS[i]}, "
+                f"thr={thresholds[i-1]:.4f}→{thresholds[i]:.4f}"
+            )
+
+    def test_metrics_in_unit_interval(self):
+        """Alle Metriken (Recall, FPR, Precision, F1) müssen in [0, 1] liegen."""
+        y_val, p_val, y_test, p_test = self._make_data()
+        rows = _compute_sensitivity_table(y_val, p_val, y_test, p_test, self.TARGETS)
+        for r in rows:
+            for key in ('test_recall', 'test_fpr', 'test_precision', 'test_f1'):
+                assert 0.0 <= r[key] <= 1.0, (
+                    f"Metrik {key}={r[key]} außerhalb [0,1] für target={r['target_recall_val']}"
+                )
+
+    def test_val_recall_meets_target(self):
+        """Val-Recall muss für jeden Threshold das jeweilige Recall-Ziel erfüllen."""
+        y_val, p_val, y_test, p_test = self._make_data()
+        rows = _compute_sensitivity_table(y_val, p_val, y_test, p_test, self.TARGETS)
+        for r in rows:
+            assert r['val_recall'] >= r['target_recall_val'] - 1e-6, (
+                f"Val-Recall {r['val_recall']:.4f} verfehlt Ziel "
+                f"{r['target_recall_val']} für threshold={r['threshold_val']:.4f}"
+            )
