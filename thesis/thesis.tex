@@ -57,16 +57,19 @@
     filtert zunächst verdächtige Cases vor; ein log-basierter Validator
     (TF-IDF-Vektorisierung mit logistischer Regression) verifiziert diese anschließend
     anhand des Textkontexts der zugehörigen Log-Dateien. Die Evaluation folgt einem
-    leakage-sicheren Ablationsaufbau mit gruppenbasiertem Train-Test-Split.
+    leakage-sicheren Ablationsaufbau mit gruppenbasiertem Train-Validation-Test-Split,
+    bei dem Threshold-Wahl und Early Stopping ausschließlich auf dem Validierungsset erfolgen.
 
-    Die Log-Komponente reduziert die False-Positive-Rate von 79{,}8\,\% auf 26{,}3\,\%
-    bei einem Recall von 0{,}958, der die geforderte Mindesterkennungsrate von 0{,}95
-    deutlich erfüllt. Ein zentraler empirischer Befund ist die Degeneration des
+    Die Log-Komponente reduziert die False-Positive-Rate von 74{,}7\,\% auf 22{,}0\,\%
+    bei einem Test-Recall von 0{,}9375, der die angestrebte Mindesterkennungsrate von
+    0{,}95 knapp verfehlt. Eine Threshold-Sensitivity-Analyse zeigt, dass dieser
+    Recall-Gap durch keine der getesteten validierungsbasierten Threshold-Policies
+    geschlossen wird. Ein zentraler empirischer Befund ist die Degeneration des
     AND-Gates: Der metrische Detektor löst beim gewählten Threshold nahezu alle
-    Test-Cases aus, sodass die AND-Fusion funktional äquivalent zur reinen Log-Filterung
-    wird. Der Log-Kontext erweist sich damit als dominanter Faktor der Pipeline;
-    eine verbesserte Case-Level-Kalibrierung des Metrik-Triggers und eine robustere
-    Evaluation über mehrere Splits bleiben offene Forschungsfragen.
+    Test-Cases aus (252 von 253), sodass die AND-Fusion funktional äquivalent zur
+    reinen Log-Filterung wird. Der Log-Kontext erweist sich damit als dominanter Faktor
+    der Pipeline; die methodische Einschränkung durch den knapp verfehlten Recall sowie
+    mögliche Erweiterungen der Log-Komponente bleiben offene Forschungsfragen.
 }
 
 \include{declaration}
