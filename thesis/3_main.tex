@@ -61,9 +61,28 @@ Die verbleibenden 29 Features sind typspezifisch und strukturell in mindestens e
 
 \subsection{Leakage-Vermeidung und Split-Strategie}
 
-Für eine leakage-sichere Evaluation werden Trainings- und Testmenge anhand von Gruppen getrennt, die jeweils die Kombination aus \texttt{dataset\_type} und \texttt{scenario\_id} bilden. Die Verwendung von \texttt{GroupShuffleSplit}~\cite{roberts2017cross} stellt sicher, dass kein Szenario sowohl in der Trainings- als auch in der Testmenge vertreten ist. Beobachtungen innerhalb desselben Szenarios sind strukturell korreliert; eine zufällige Aufteilung ohne Berücksichtigung dieser Gruppenstruktur würde die Trennleistung im Test systematisch überschätzen.
+Für eine leakage-sichere Evaluation werden die Daten in drei disjunkte Teilmengen aufgeteilt. Als Gruppenkennung dient die Kombination aus \texttt{dataset\_type} und \texttt{scenario\_id} (\texttt{group\_id}); kein Szenario erscheint in mehr als einer Teilmenge. Die Aufteilung erfolgt in zwei Stufen mit \texttt{GroupShuffleSplit}~\cite{roberts2017cross}: In einem ersten äußeren Schritt werden ca.\ 20~\% der Gruppen als Testset abgetrennt; in einem zweiten inneren Schritt werden aus dem verbleibenden Pool ca.\ 20~\% als Validierungsset reserviert. Das Trainingsset dient ausschließlich dem Modelltraining und der Imputation; das Validierungsset wird für Early Stopping und die Threshold-Wahl verwendet; das Testset wird ausschließlich zur finalen Evaluation eingesetzt. Die Nicht-Überlappung aller drei Splits nach Gruppenkennung wurde artefaktseitig verifiziert (\texttt{docs/split\_assignments.csv}). Beobachtungen innerhalb desselben Szenarios sind strukturell korreliert; eine zufällige Aufteilung ohne Berücksichtigung dieser Gruppenstruktur würde die Trennleistung im Test systematisch überschätzen.
 
-Der Split erfolgt im Verhältnis 80/20 mit \texttt{random\_state=42}. Auf Zeilenebene (Phase~2) ergibt sich ein Trainingsset von 89\,222~Zeilen und ein Testset von 22\,770~Zeilen; auf Case-Ebene (Phase~3 und~4) sind es 999~Trainingsfälle und 253~Testfälle. Das Klassenungleichgewicht beträgt im Trainingsset annähernd 4{,}92:1 (negativ zu positiv).
+Tabelle~\ref{tab:split} fasst die resultierenden Teilmengen zusammen.
+
+\begin{table}[htb]
+  \centering
+  \caption{Gruppenbasierter Train/Validation/Test-Split (\texttt{random\_state=42})}
+  \label{tab:split}
+  \begin{tabular}{lrrrr}
+    \hline
+    \textbf{Split} & \textbf{Cases} & \textbf{Gruppen} & \textbf{Positiv} & \textbf{Negativ} \\
+    \hline
+    Train      & 793 & 28 & 122 & 671 \\
+    Validation & 206 &  8 &  53 & 153 \\
+    Test       & 253 &  9 &  48 & 205 \\
+    \hline
+    \textbf{Gesamt} & \textbf{1\,252} & \textbf{45} & \textbf{223} & \textbf{1\,029} \\
+    \hline
+  \end{tabular}
+\end{table}
+
+Auf Zeilenebene (Phase~2) umfasst das Testset 22\,770~Zeilen. Das Klassenungleichgewicht im Trainingsset beträgt 5{,}50:1 (negativ zu positiv, 671~vs.\ 122~Cases).
 
 % ---------------------------------------------------------------------------
 \section{Metrik-basierte Baseline}
@@ -73,9 +92,9 @@ Der Split erfolgt im Verhältnis 80/20 mit \texttt{random\_state=42}. Auf Zeilen
 
 Als Baseline-Modell für den metrikbasierten Anomalie-Detektor wird XGBoost~\cite{chen2016xgboost} eingesetzt. XGBoost implementiert Gradient Boosting über Entscheidungsbäume und ist durch die \texttt{hist}-Methode (histogrammbasiertes Split-Finding) auch für größere Datensätze effizient anwendbar. Für tabellarisch strukturierte Daten mit gemischten Skalen stellt XGBoost eine gut validierte Wahl dar.
 
-Als Optimierungsmetrik wird der Wert der Fläche unter der Precision-Recall-Kurve (\emph{AUCPR}) gewählt. Bei stark unbalancierten Klassifikationsproblemen ist AUCPR gegenüber dem ROC-AUC informativer, da Letzterer die Leistung im negativen Regime übergewichtet~\cite{davis2006relationship,saito2015precision}. Das vorliegende Klassenungleichgewicht von annähernd 4{,}92:1 erfüllt diese Voraussetzung~\cite{hegarcia2009learning}.
+Als Optimierungsmetrik wird der Wert der Fläche unter der Precision-Recall-Kurve (\emph{AUCPR}) gewählt. Bei stark unbalancierten Klassifikationsproblemen ist AUCPR gegenüber dem ROC-AUC informativer, da Letzterer die Leistung im negativen Regime übergewichtet~\cite{davis2006relationship,saito2015precision}. Das vorliegende Klassenungleichgewicht im Trainingsset von annähernd 5{,}50:1 erfüllt diese Voraussetzung~\cite{hegarcia2009learning}.
 
-Das Klassenungleichgewicht wird in der XGBoost-Verlustfunktion über den Hyperparameter \texttt{scale\_pos\_weight} berücksichtigt. Der Wert von~4{,}92 wird aus der Trainingsverteilung bestimmt. Als Optimierungsmetrik dient AUCPR. Early Stopping ist mit 20 Runden aktiviert. Das beste Modell wurde nach Iteration~109 von 129 beobachteten Iterationen ausgewählt. In dieser prototypischen Einzelsplit-Evaluation wurde Early Stopping auf dem Holdout-Testset überwacht, da kein separater Validierungssplit angelegt wurde. Diese Konfiguration wird in Abschnitt~\ref{sec:limit} als methodische Einschränkung ausgewiesen.
+Das Klassenungleichgewicht wird in der XGBoost-Verlustfunktion über den Hyperparameter \texttt{scale\_pos\_weight} berücksichtigt. Der Wert von~5{,}50 wird ausschließlich aus der Trainingsverteilung berechnet (671 negative vs.\ 122 positive Trainingsfälle). Als Optimierungsmetrik dient AUCPR. Early Stopping ist mit 20 Runden aktiviert; die Überwachungsmetrik wird dabei ausschließlich auf dem Validierungsset berechnet. Der Operating-Threshold wird als höchster Validierungsschwellenwert gewählt, der auf dem Validierungsset eine Recall-Rate von mindestens 0{,}95 erzielt; die so bestimmte Schwelle wird unverändert auf das Testset angewendet.
 
 \begin{table}[htb]
   \centering
@@ -87,9 +106,9 @@ Das Klassenungleichgewicht wird in der XGBoost-Verlustfunktion über den Hyperpa
     \hline
     \texttt{tree\_method}      & \texttt{hist} \\
     \texttt{eval\_metric}      & \texttt{aucpr} \\
-    \texttt{scale\_pos\_weight} & 4{,}92 \\
+    \texttt{scale\_pos\_weight} & 5{,}50 \\
     \texttt{random\_state}     & 42 \\
-    Early Stopping             & aktiv (beste Iteration: 109) \\
+    Early Stopping             & aktiv (Überwachung auf Validierungsset) \\
     \hline
   \end{tabular}
 \end{table}
@@ -152,7 +171,7 @@ Die Metrik-Baseline liefert damit eine klar interpretierbare Ausgangssituation: 
 
 Für jeden der 1\,252 Cases liegt eine zugehörige Log-Datei vor. Im Gegensatz zur metrischen Analyse, die auf Zeilenebene (einzelne Messpunkte) operiert, erfolgt die Log-Analyse auf Case-Ebene: Jede Log-Datei wird als ein einzelnes Dokument behandelt, dem genau ein binäres Label zugewiesen ist. Log-Daten enthalten qualitative Textinformationen über Systemereignisse, Fehlermeldungen und Prozessabläufe, die Metriken allein nicht abbilden können. He~et~al.~\cite{he2021survey} zeigen in ihrer Übersicht, dass automatisierte Log-Analyse ein etabliertes Werkzeug im Reliability Engineering ist und textbasierte Merkmale relevante Signale für die Anomalieerkennung liefern.
 
-Von 1\,252 Cases des Gesamtdatensatzes entfallen nach dem gruppierten Split 999~Fälle auf das Trainingsset und 253~auf das Testset. Im Testset befinden sich 48~positive (mali), 76~anom und 129~norm-Cases.
+Von 1\,252 Cases des Gesamtdatensatzes entfallen nach dem gruppenbasierten dreistufigen Split 793~Fälle auf das Trainingsset, 206~auf das Validierungsset und 253~auf das Testset. Im Testset befinden sich 48~positive (mali), 76~anom und 129~norm-Cases.
 
 \subsection{TF-IDF-Vektorisierung}
 
@@ -175,11 +194,11 @@ Die Textrepräsentation erfolgt mit \emph{Term Frequency -- Inverse Document Fre
   \end{tabular}
 \end{table}
 
-Der Vektorisierer wird ausschließlich auf den 999~Trainingsfällen gefittet; das Test-Vokabular wird nicht einbezogen~\cite{kaufman2012leakage}. Die Verwendung von Bigrammen erlaubt die Erfassung kurzer Wortfolgen, die in Log-Meldungen häufig als feste Phrasen auftreten; der Parameter \texttt{ngram\_range} ist auf \texttt{(1,\,2)} gesetzt. Mit \texttt{sublinear\_tf=True} wird die rohe Termfrequenz durch ihren Logarithmus ersetzt, um sehr häufige Terme nicht unverhältnismäßig zu gewichten. Das resultierende Vokabular umfasst 10\,000~Terme; die Trainings- und Testmatrix haben die Dimension $(999 \times 10\,000)$ bzw. $(253 \times 10\,000)$.
+Der Vektorisierer wird ausschließlich auf den 793~Trainingsfällen gefittet; weder das Validierungs- noch das Test-Vokabular wird einbezogen~\cite{kaufman2012leakage}. Die Verwendung von Bigrammen erlaubt die Erfassung kurzer Wortfolgen, die in Log-Meldungen häufig als feste Phrasen auftreten; der Parameter \texttt{ngram\_range} ist auf \texttt{(1,\,2)} gesetzt. Mit \texttt{sublinear\_tf=True} wird die rohe Termfrequenz durch ihren Logarithmus ersetzt, um sehr häufige Terme nicht unverhältnismäßig zu gewichten. Das resultierende Vokabular umfasst 10\,000~Terme; die Trainings-, Validierungs- und Testmatrix haben die Dimension $(793 \times 10\,000)$, $(206 \times 10\,000)$ bzw. $(253 \times 10\,000)$.
 
 \subsection{Logistische Regression}
 
-Auf der TF-IDF-Matrix wird eine logistische Regression trainiert. Lineare Klassifikatoren auf sparse hochdimensionalen Textmatrizen sind für diese Problemklasse eine gut erprobte Wahl; die Implementierung erfolgt über die logistische Regression aus scikit-learn~\cite{pedregosa2011scikit}. Der \texttt{lbfgs}-Solver ist auf mittelgroßen Datensätzen numerisch stabil und effizient einsetzbar. Das Klassenungleichgewicht (Trainingsverhältnis $\approx$~4{,}71:1) wird durch \texttt{class\_weight=`balanced'} ausgeglichen, das die Verlustfunktion proportional zu den Klassengrößen gewichtet.
+Auf der TF-IDF-Matrix wird eine logistische Regression trainiert. Lineare Klassifikatoren auf sparse hochdimensionalen Textmatrizen sind für diese Problemklasse eine gut erprobte Wahl; die Implementierung erfolgt über die logistische Regression aus scikit-learn~\cite{pedregosa2011scikit}. Der \texttt{lbfgs}-Solver ist auf mittelgroßen Datensätzen numerisch stabil und effizient einsetzbar. Das Klassenungleichgewicht (Trainingsverhältnis $\approx$~5{,}50:1) wird durch \texttt{class\_weight=`balanced'} ausgeglichen, das die Verlustfunktion proportional zu den Klassengrößen gewichtet.
 
 \begin{table}[htb]
   \centering
@@ -205,6 +224,8 @@ Abbildung~\ref{fig:tfidf_feat} visualisiert die 20~einflussreichsten Terme des M
   \caption{Top-20 TF-IDF-Terme nach Koeffizientengröße. Positiv gewichtete Terme sind stärker mit malignen Cases assoziiert; negativ gewichtete Terme treten häufiger in benignen Cases auf.}
   \label{fig:tfidf_feat}
 \end{figure}
+
+Der Operating-Threshold der Log-Komponente wird analog zur Metrik-Baseline bestimmt: Es wird der höchste Validierungsschwellenwert gewählt, der auf dem Validierungsset eine Recall-Rate von mindestens 0{,}95 erzielt. Die so bestimmte Schwelle wird anschließend unverändert auf das Testset angewendet.
 
 \subsection{Ergebnisse der Log-Komponente}
 
@@ -240,6 +261,11 @@ Ein direkter numerischer Vergleich der Average-Precision-Werte (0{,}2326 Metrik-
   \label{fig:pr_log}
 \end{figure}
 
+\subsection{Threshold-Sensitivity-Analyse}
+\label{sec:sensitivity}
+
+Zur methodischen Absicherung der Threshold-Wahl wurde eine Sensitivity-Analyse für die Log-Komponente durchgeführt. Es wurden vier Validation-Recall-Ziele untersucht: 0{,}95, 0{,}975, 0{,}99 und 1{,}00. Für jedes Ziel wurde der höchste Validierungsschwellenwert bestimmt, der auf dem Validierungsset das jeweilige Recall-Ziel erfüllt; dieser Threshold wurde anschließend unverändert auf das Testset angewendet. Die resultierenden Testmetriken dienen ausschließlich der Auswertung und wurden zu keinem Zeitpunkt für die Threshold-Auswahl herangezogen. Eine testbasierte Nachoptimierung wurde bewusst nicht vorgenommen. Die Ergebnisse dieser Analyse werden in Abschnitt~\ref{sec:limit} diskutiert.
+
 % ---------------------------------------------------------------------------
 \section{Hybride Fusion und Evaluation}
 % ---------------------------------------------------------------------------
@@ -250,7 +276,7 @@ Die metrische Phase~2 operiert auf Zeilenebene: Für jede Zeile eines Cases wird
 \[
   \hat{p}_{\text{case}} = \max_{i \in \text{case}} \hat{p}_{\text{metric},i}
 \]
-Diese Max-Pooling-Operation entspricht der Annahme, dass ein einzelner anomaler Messpunkt innerhalb eines Cases als hinreichendes Indiz für Malicious-Aktivität gewertet werden kann. Dieses Prinzip ist konzeptuell verwandt mit der Aggregationslogik im Multiple-Instance Learning~\cite{maron1998mil}, bei dem ein Bag (hier: Case) als positiv gilt, wenn mindestens eine seiner Instanzen (hier: Zeilen) positiv ist. Die Max-Aggregation wird mit einem Threshold von~0{,}0222 zu einem binären \texttt{metric\_trigger} konvertiert.
+Diese Max-Pooling-Operation entspricht der Annahme, dass ein einzelner anomaler Messpunkt innerhalb eines Cases als hinreichendes Indiz für Malicious-Aktivität gewertet werden kann. Dieses Prinzip ist konzeptuell verwandt mit der Aggregationslogik im Multiple-Instance Learning~\cite{maron1998mil}, bei dem ein Bag (hier: Case) als positiv gilt, wenn mindestens eine seiner Instanzen (hier: Zeilen) positiv ist. Die Max-Aggregation wird mit dem validierungsbasierten Threshold von~0{,}090 zu einem binären \texttt{metric\_trigger} konvertiert.
 
 Im Testset von 253~Cases ergibt diese Aggregation folgende Verteilung:
 
@@ -322,22 +348,26 @@ Die zentralen Befunde lassen sich wie folgt zusammenfassen: Die Log-Komponente r
 
 Ein wesentlicher empirischer Befund dieser Arbeit ist die Degeneration des AND-Gates. Von den 253~Test-Cases wird 252 ein \texttt{metric\_trigger=1} zugewiesen -- lediglich ein einziger Case löst den Metrikdetektor nicht aus. Die AND-Fusion wird damit funktional äquivalent zur reinen Log-Filterung, da die Bedingung \texttt{metric\_trigger=1} nahezu universell erfüllt ist.
 
-Die Ursache liegt in der erzwungenen Kalibrierung des Metrik-Detektors. Die Recall-Nebenbedingung ($\geq$~0{,}95) erzwingt bei begrenzter Ausdrucksstärke der fünf universellen Features einen sehr niedrigen Threshold von~0{,}0222. Ein so niedriger Threshold markiert die überwiegende Mehrheit aller Cases -- unabhängig von ihrer tatsächlichen Klasse -- als metrisch auffällig. Das AND-Gate, das konzeptionell als Zweistufenfilter gedacht ist, verliert dadurch seine Filterfunktion auf Metrikseite vollständig.
+Die Ursache liegt in der erzwungenen Kalibrierung des Metrik-Detektors. Die Recall-Nebenbedingung ($\geq$~0{,}95) erzwingt bei begrenzter Ausdrucksstärke der fünf universellen Features einen niedrigen Threshold von~0{,}090. Ein so niedriger Threshold markiert die überwiegende Mehrheit aller Cases -- unabhängig von ihrer tatsächlichen Klasse -- als metrisch auffällig. Das AND-Gate, das konzeptionell als Zweistufenfilter gedacht ist, verliert dadurch seine Filterfunktion auf Metrikseite vollständig.
 
 Diese Degeneration ist kein Implementierungsfehler, sondern ein direktes Ergebnis der Eigenschaften des Metrik-Detektors auf dem gewählten Datensatz. Sie schränkt die Aussagekraft der AND-Fusion als eigenständige Fusionsstrategie im vorliegenden Experiment ein und muss bei der Interpretation der Ergebnisse transparent benannt werden. Eine Möglichkeit, die Degeneration zu überwinden, wäre die Anhebung des Metrik-Thresholds auf Kosten des Recalls oder der Einsatz eines ausdrucksstärkeren metrischen Detektors (z.\,B. mit mehr Features oder anderen Modellklassen). Beides liegt außerhalb des Rahmens dieser Arbeit.
 
 \subsection{Qualitätssicherung und Reproduzierbarkeit}
 
-Die Kernlogiken der Pipeline werden durch 13~Unit-Tests abgesichert (\texttt{test\_pipeline.py} im Verzeichnis \texttt{tests/}, pytest-Framework). Die Tests sind in vier Klassen gegliedert:
+Die Kernlogiken der Pipeline werden durch 24~Unit-Tests abgesichert (\texttt{test\_pipeline.py} im Verzeichnis \texttt{tests/}, pytest-Framework). Die Tests sind in sechs Klassen gegliedert:
 
 \begin{enumerate}
   \item \textbf{Canonical Matrix / Preprocessing} (\texttt{TestBuildCanonicalMatrix}, 4~Tests): Prüft die korrekte Behandlung fehlender Spalten, die leakage-sichere Imputation mit Trainings-Medianen, die vollständige NaN-Bereinigung nach Imputation sowie die Koerzion von quotenbehafteten Zeichenketten.
 
   \item \textbf{Fusion / Soft Score} (\texttt{TestFusionLogic}, 3~Tests): Verifiziert die AND-Gate-Wahr\-heits\-tabelle auf allen vier Eingangskombinationen, die Eigenschaft $\text{FPR}_{\text{Fusion}} \leq \text{FPR}_{\text{Baseline}}$ auf einem synthetischen Testszenario sowie die Wertebereichseigenschaft des Soft Scores ($s_{\text{fusion}} \in [0,1]$).
 
-  \item \textbf{Datenintegrität / GroupShuffleSplit} (\texttt{TestDataIntegrity}, 2~Tests): Stellt sicher, dass keine Gruppe in Train und Test gleichzeitig vorkommt, und prüft das Vorhandensein aller fünf universellen Features in sämtlichen Datensatztypen.
+  \item \textbf{Datenintegrität / GroupShuffleSplit} (\texttt{TestDataIntegrity}, 2~Tests): Stellt sicher, dass keine Gruppe in mehr als einem der drei Splits (Train, Validation, Test) gleichzeitig vorkommt, und prüft das Vorhandensein aller fünf universellen Features in sämtlichen Datensatztypen.
 
   \item \textbf{Algorithmische Logik} (\texttt{TestAlgorithmicLogic}, 4~Tests): Prüft die Threshold-Auswahllogik (höchster Threshold bei Recall $\geq$ 0{,}95), die Einhaltung der Recall-Nebenbedingung nach Threshold-Anwendung, die korrekte Max-Aggregation auf Case-Ebene sowie die Abwesenheit testexklusiver Terme im TF-IDF-Vokabular.
+
+  \item \textbf{Validierungs-Split} (\texttt{TestValidationSplit}, 6~Tests): Verifiziert die Disjunktheit aller drei Splits nach Gruppenkennung, die korrekte Größe und Zusammensetzung der Teilmengen sowie die ausschließliche Verwendung von Trainingsdaten für Imputations-Mediane.
+
+  \item \textbf{Threshold-Sensitivity} (\texttt{TestThresholdSensitivity}, 5~Tests): Prüft, dass die Sensitivity-Tabelle alle vier Recall-Ziele enthält, dass Thresholds ausschließlich aus Validierungsdaten stammen, dass höhere Recall-Ziele keine höheren Thresholds erzeugen, dass Metriken im Einheitsintervall liegen sowie dass der Validation-Recall das jeweilige Ziel erfüllt.
 \end{enumerate}
 
 Vollständige Reproduzierbarkeit wird durch \texttt{random\_state=42} in allen Splits und im XGBoost-Training sichergestellt. Die Datei \texttt{docs/fusion\_cases.csv} enthält alle 253~Test-Cases mit ihren Zwischen-Scores (\texttt{max\_proba}, \texttt{proba\_log}, \texttt{metric\_trigger}, \texttt{log\_trigger}, \texttt{alert}, \texttt{score\_fusion}) als nachvollziehbarer Audit-Trail.
@@ -366,14 +396,14 @@ Die Analyse auf Case-Ebene statt Zeilenebene ist dabei konzeptuell angemessen: D
 
 Der metrische Detektor erzielt mit einer AP von 0{,}233 eine verhältnismäßig schwache Diskriminationsleistung. Dies ist auf zwei Faktoren zurückzuführen. Erstens beschränkt die Schema-Leakage-Vermeidung (vgl. Abschnitt~\ref{sec:features}) das Modell auf fünf Features, die zwar universell verfügbar, aber in ihrer Kombination nicht hochdiskriminativ für mali gegenüber anom sind. Zweitens erlaubt die Zeilenebene keine Kontextualisierung einzelner Messpunkte: Ein kurzzeitiger Anstieg von \texttt{cpu\_usage} kann sowohl bei einem malignen Vorgang als auch bei normaler Lastspitze auftreten.
 
-Die Konsequenz ist ein sehr niedriger operativer Threshold (0{,}0222), der zur AND-Gate-Degeneration und zur hohen FPR führt. Ein metrischer Detektor mit höherer Ausdrucksstärke -- etwa durch Einbeziehung von Zeitfenster-Aggregaten, typspezifischen Features oder tieferen Modellen -- könnte diese Einschränkungen möglicherweise mildern, ist jedoch mit dem Risiko erhöhten Schema-Leakages verbunden.
+Die Konsequenz ist ein niedriger operativer Threshold (0{,}090), der zur AND-Gate-Degeneration und zur hohen FPR führt. Ein metrischer Detektor mit höherer Ausdrucksstärke -- etwa durch Einbeziehung von Zeitfenster-Aggregaten, typspezifischen Features oder tieferen Modellen -- könnte diese Einschränkungen möglicherweise mildern, ist jedoch mit dem Risiko erhöhten Schema-Leakages verbunden.
 
 \subsection{Methodische Limitationen}
 \label{sec:limit}
 
 Mehrere methodische Einschränkungen begrenzen die Generalisierbarkeit der Befunde und müssen transparent benannt werden.
 
-\textbf{Einzelner Holdout-Split.} Es wurde lediglich ein einziger \texttt{GroupShuffleSplit} mit \texttt{n\_splits=1} durchgeführt. Die Streuung der Ergebnismetriken über verschiedene Splits ist damit unbekannt. Cawley und Talbot~\cite{cawley2010over} zeigen, dass Designentscheidungen, die am Testset orientiert werden, zu Optimismus-Verzerrung führen können. Da Hyperparameter und Threshold in dieser Arbeit auf Basis des einzigen Testsets gewählt wurden, ist ein solcher Bias nicht vollständig ausschließbar.
+\textbf{Einzelner Train-Validation-Test-Split.} Es wurde lediglich ein einziger gruppenbasierter Train-Validation-Test-Split durchgeführt. Die Streuung der Ergebnismetriken über verschiedene Splits ist damit unbekannt. Threshold-Wahl und Early Stopping erfolgen ausschließlich auf dem Validierungsset, sodass das Testset als unberührter Holdout dient. Cawley und Talbot~\cite{cawley2010over} weisen darauf hin, dass die Abhängigkeit von einem einzigen Split die Stabilität der Ergebnisse nicht belegt; Bootstrap-Konfidenzintervalle oder wiederholte Splits könnten diese Limitation in zukünftigen Arbeiten adressieren.
 
 \textbf{Kleine positive Testmenge.} Das Testset enthält lediglich 48~positive Cases (mali). Konfidenzintervalle für die berichteten Metriken wurden nicht berechnet; die Punktschätzungen der FPR und des Recalls sind daher mit entsprechender Vorsicht zu interpretieren.
 
@@ -381,7 +411,7 @@ Mehrere methodische Einschränkungen begrenzen die Generalisierbarkeit der Befun
 
 \textbf{Unterschiedliche Evaluationsgranularitäten.} Metrik-Baseline und Log-Komponente werden auf unterschiedlichen Ebenen evaluiert (Zeilen vs. Cases), was einen direkten numerischen Vergleich der AP-Werte ausschließt. Nur auf Case-Ebene sind die FPR-Werte direkt vergleichbar.
 
-\textbf{Early-Stopping-Konfiguration.} Das Early Stopping der Metrik-Baseline wurde auf dem Holdout-Testset überwacht; ein separater Validierungssplit wurde nicht angelegt. Dadurch können die zeilenbasierten Metrik-Ergebnisse leicht optimistisch sein~\cite{cawley2010over}. Da die Metrik-Baseline trotz dieser Konfiguration die schwächere Komponente bleibt und der Operating-Threshold post-hoc unter der Recall-Nebenbedingung gewählt wird, ändert dies nicht die qualitative Interpretation der AND-Gate-Degeneration. Für eine belastbarere Evaluation wären ein separater Validierungssplit oder verschachtelte Validierung erforderlich.
+\textbf{Recall-Gap der Log-Komponente.} Der Test-Recall der Log-Komponente verfehlt die angestrebte 0{,}95-Schwelle knapp. Die Threshold-Sensitivity-Analyse (vgl. Abschnitt~\ref{sec:sensitivity}) zeigt, dass keines der getesteten validierungsbasierten Recall-Ziele diesen Gap auf dem Testset schließt: Die betroffenen FN-Cases liegen unterhalb des niedrigsten Validierungsthresholds, der auf dem Validierungsset vollständigen Recall erzielt. Eine nachträgliche testbasierte Threshold-Optimierung wurde bewusst nicht durchgeführt, da sie dem Prinzip der leakage-sicheren Evaluation widerspräche~\cite{cawley2010over}.
 
 \textbf{Soft-Fusion ohne Mehrwert gegenüber Log-only.} Die Soft-Fusion-Strategie ($s = \hat{p}_{\text{case}} \times \hat{p}_{\text{log}}$) erzielt eine AP von~0{,}5759, die unter der AP der Log-Komponente allein (0{,}7771) liegt. Die Multiplikation mit dem metrischen Faktor dämpft den Log-Score systematisch, ohne einen eigenständigen Informationsgewinn zu liefern. Tax~et~al.~\cite{tax2000combining} zeigen, dass die Produktregel bei abhängigen oder redundanten Repräsentationen gegenüber einfachen Mittelungsstrategien schlechter abschneiden kann. Eine alternative Fusionsgewichtung oder ein kalibrierter metrischer Detektor könnten diesen Nachteil möglicherweise beheben, wurden aber nicht untersucht.
 
