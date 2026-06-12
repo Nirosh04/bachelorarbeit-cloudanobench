@@ -233,6 +233,7 @@ data/
 !docs/log_val_scores.csv
 !docs/log_results.csv
 !docs/log_preprocessing_examples.csv
+!docs/log_case_texts_normalized_sample.csv
 !docs/threshold_sensitivity_log.csv
 !docs/threshold_sensitivity_metric.csv
 !docs/final_results_table.csv

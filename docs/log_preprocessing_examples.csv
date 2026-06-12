@@ -1,0 +1,93 @@
+case_id,split,label,dataset_type,raw_excerpt,normalized_excerpt
+mali_1_18.csv,train,1,mali,"Aug 19 09:00:01 postgres[2345]: [2-1] LOG:  database system is ready to accept connections
+Aug 19 09:00:11 systemd[1]: Starting Postfix Mail Transport Agent...
+Aug 19 09:00:12 postfix/master[1234]: daemon started -- version 3.5.6, configuration /etc/","TOKEN_TIME postgres[TOKEN_PID]: [TOKEN_NUM-TOKEN_NUM] LOG:  database system is ready to accept connections
+TOKEN_TIME systemd[TOKEN_PID]: Starting Postfix Mail Transport Agent...
+TOKEN_TIME postfix/master[TOKEN_PID]: daemon started -- version TOKEN_N"
+mali_3_14.csv,train,1,mali,"Aug 29 15:10:10 sshd[1254]: pam_unix(sshd:session): session opened for user webadmin by (uid=0)
+Aug 29 15:10:25 systemd[1]: Starting Cleanup of Temporary Directories...
+Aug 29 15:10:40 CRON[3452]: (root) CMD (cd / && run-parts --report /etc/cron.hour","TOKEN_TIME sshd[TOKEN_PID]: pam_unix(sshd:session): session opened for user webadmin by (uid=TOKEN_NUM)
+TOKEN_TIME systemd[TOKEN_PID]: Starting Cleanup of Temporary Directories...
+TOKEN_TIME CRON[TOKEN_PID]: (root) CMD (cd / && run-parts --report /et"
+mali_4_22.csv,val,1,mali,"Aug 26 02:00:00 web-app[1234]: GET /api/v1/health status=200 OK
+Aug 26 02:00:01 systemd[1]: Starting daily clean up activities...
+Aug 26 02:00:03 CRON[5432]: (root) CMD (run-parts --report /etc/cron.hourly)
+Aug 26 02:00:36 systemd[1]: Starting daily ","TOKEN_TIME web-app[TOKEN_PID]: GET /api/v1/health status=TOKEN_NUM OK
+TOKEN_TIME systemd[TOKEN_PID]: Starting daily clean up activities...
+TOKEN_TIME CRON[TOKEN_PID]: (root) CMD (run-parts --report /etc/cron.hourly)
+TOKEN_TIME systemd[TOKEN_PID]: Sta"
+mali_5_3.csv,train,1,mali,"Aug 07 04:12:05 server systemd[1]: Starting Daily apt upgrade and clean activities...
+Aug 07 04:12:15 server sshd[8654]: Accepted password for user admin from 28.43.93.199 port 43754 ssh2
+Aug 07 04:12:40 server CRON[9720]: (root) CMD (   cd / && run-","TOKEN_TIME server systemd[TOKEN_PID]: Starting Daily apt upgrade and clean activities...
+TOKEN_TIME server sshd[TOKEN_PID]: Accepted password for user admin from TOKEN_IP port TOKEN_PORT ssh2
+TOKEN_TIME server CRON[TOKEN_PID]: (root) CMD (   cd / && "
+mali_9_7.csv,train,1,mali,"Aug 29 03:57:55 server1 sshd[3115]: Accepted publickey for attacker from 198.51.100.5 port 12345 ssh2: RSA SHA256:...
+Aug 29 03:57:56 server1 systemd-logind[987]: New session 5 of user attacker.
+Aug 29 03:57:56 server1 systemd[1]: Created slice User ","TOKEN_TIME server1 sshd[TOKEN_PID]: Accepted publickey for attacker from TOKEN_IP port TOKEN_PORT ssh2: RSA SHA256:...
+TOKEN_TIME server1 systemd-logind[TOKEN_PID]: New session TOKEN_NUM of user attacker.
+TOKEN_TIME server1 systemd[TOKEN_PID]: Create"
+anom_13_2.csv,test,0,anom,"Jul 15 18:00:02 web-app[3452]: INFO: Background job 'report-generator' started.
+Jul 15 18:00:08 web-app[3452]: DEBUG: Query executed: SELECT * FROM users WHERE email=?
+Jul 15 18:00:14 web-app[3452]: INFO: GET /api/v1/settings HTTP/1.1 200 OK
+Jul 15 1","TOKEN_TIME web-app[TOKEN_PID]: INFO: Background job 'report-generator' started.
+TOKEN_TIME web-app[TOKEN_PID]: DEBUG: Query executed: SELECT * FROM users WHERE email=?
+TOKEN_TIME web-app[TOKEN_PID]: INFO: GET /api/v1/settings HTTP/TOKEN_NUM.TOKEN_NUM"
+anom_10_1.csv,train,0,anom,"Aug 15 10:00:06 kubelet[2345]: INFO routine sync completed for pod web-app
+Aug 15 10:00:19 nginx[1123]: GET /api/status HTTP/1.1 200 OK from 192.168.1.101
+Aug 15 10:00:19 systemd[1]: Started Session 10 of user ubuntu.
+Aug 15 10:00:23 nginx[1123]: GET","TOKEN_TIME kubelet[TOKEN_PID]: INFO routine sync completed for pod web-app
+TOKEN_TIME nginx[TOKEN_PID]: GET /api/status HTTP/TOKEN_NUM.TOKEN_NUM TOKEN_NUM OK from TOKEN_IP
+TOKEN_TIME systemd[TOKEN_PID]: Started Session TOKEN_NUM of user ubuntu.
+TOKEN"
+anom_16_4.csv,train,0,anom,"Jul 20 09:59:44 systemd[1]: Started Session 204 of user service-account.
+Jul 20 09:59:49 api-gateway[5521]: GET /v1/user/status HTTP/1.1 200
+Jul 20 09:59:54 api-gateway[5521]: GET /v1/user/status HTTP/1.1 200
+Jul 20 09:59:59 api-gateway[5521]: GET /v","TOKEN_TIME systemd[TOKEN_PID]: Started Session TOKEN_NUM of user service-account.
+TOKEN_TIME api-gateway[TOKEN_PID]: GET /v1/user/status HTTP/TOKEN_NUM.TOKEN_NUM TOKEN_NUM
+TOKEN_TIME api-gateway[TOKEN_PID]: GET /v1/user/status HTTP/TOKEN_NUM.TOKEN_NU"
+anom_9_16.csv,train,0,anom,"Jul 09 10:00:00 app-main[1456]: POST /api/v1/submit status=202 Accepted
+Jul 09 10:00:30 app-main[1456]: GET /api/v1/health status=200 OK
+Jul 09 10:01:00 systemd[1]: Starting daily clean up activities...
+Jul 09 10:01:30 app-main[1456]: GET /api/v1/hea","TOKEN_TIME app-main[TOKEN_PID]: POST /api/v1/submit status=TOKEN_NUM Accepted
+TOKEN_TIME app-main[TOKEN_PID]: GET /api/v1/health status=TOKEN_NUM OK
+TOKEN_TIME systemd[TOKEN_PID]: Starting daily clean up activities...
+TOKEN_TIME app-main[TOKEN_PID]: "
+anom_14_21.csv,train,0,anom,"Jul 02 14:00:00 kubelet[2345]: INFO Liveness probe succeeded for pod web-app-pod
+Jul 02 14:00:00 systemd[1]: Starting daily user cleanup...
+Jul 02 14:00:00 web-app[3456]: GET /api/v1/user/28 status=200 OK
+Jul 02 14:00:20 web-app[3456]: GET /api/v1/us","TOKEN_TIME kubelet[TOKEN_PID]: INFO Liveness probe succeeded for pod web-app-pod
+TOKEN_TIME systemd[TOKEN_PID]: Starting daily user cleanup...
+TOKEN_TIME web-app[TOKEN_PID]: GET /api/v1/user/TOKEN_NUM status=TOKEN_NUM OK
+TOKEN_TIME web-app[TOKEN_PID]"
+norm_15_18.csv,test,0,norm,"Aug 23 10:01:15 db-pool-manager[4321]: DEBUG: Pool 'HikariPool-1' - Adding new connection. (total=1)
+Aug 23 10:01:27 db-pool-manager[4321]: DEBUG: Pool 'HikariPool-1' - Adding new connection. (total=2)
+Aug 23 10:01:40 db-pool-manager[4321]: DEBUG: Po","TOKEN_TIME db-pool-manager[TOKEN_PID]: DEBUG: Pool 'HikariPool-TOKEN_NUM' - Adding new connection. (total=TOKEN_NUM)
+TOKEN_TIME db-pool-manager[TOKEN_PID]: DEBUG: Pool 'HikariPool-TOKEN_NUM' - Adding new connection. (total=TOKEN_NUM)
+TOKEN_TIME db-po"
+norm_10_5.csv,train,0,norm,"Jul 02 12:00:00 web-app[2251]: GET /api/v1/user/45 status=200 OK
+Jul 02 12:00:35 web-app[2251]: GET /api/v1/user/45 status=200 OK
+Jul 02 12:00:55 kubelet[1198]: INFO Liveness probe succeeded for pod web-app-pod
+Jul 02 12:01:10 web-app[2251]: GET /api","TOKEN_TIME web-app[TOKEN_PID]: GET /api/v1/user/TOKEN_NUM status=TOKEN_NUM OK
+TOKEN_TIME web-app[TOKEN_PID]: GET /api/v1/user/TOKEN_NUM status=TOKEN_NUM OK
+TOKEN_TIME kubelet[TOKEN_PID]: INFO Liveness probe succeeded for pod web-app-pod
+TOKEN_TIME we"
+norm_12_6.csv,train,0,norm,"Aug 15 14:00:00 systemd[1]: Starting daily user session cleaning...
+Aug 15 14:00:00 web-app[3456]: GET /api/v1/status status=200 OK
+Aug 15 14:00:20 systemd[1]: Starting daily user session cleaning...
+Aug 15 14:00:35 web-app[3456]: GET /api/v1/status ","TOKEN_TIME systemd[TOKEN_PID]: Starting daily user session cleaning...
+TOKEN_TIME web-app[TOKEN_PID]: GET /api/v1/status status=TOKEN_NUM OK
+TOKEN_TIME systemd[TOKEN_PID]: Starting daily user session cleaning...
+TOKEN_TIME web-app[TOKEN_PID]: GET /ap"
+norm_5_29.csv,train,0,norm,"Aug 29 10:00:25 systemd[1]: Starting daily clean up activities...
+Aug 29 10:01:15 web-app[3456]: GET /api/v1/health status=200 OK
+Aug 29 10:02:05 CRON[8765]: (root) CMD (run-parts --report /etc/cron.hourly)
+Aug 29 10:02:55 web-app[3456]: GET /api/v1/","TOKEN_TIME systemd[TOKEN_PID]: Starting daily clean up activities...
+TOKEN_TIME web-app[TOKEN_PID]: GET /api/v1/health status=TOKEN_NUM OK
+TOKEN_TIME CRON[TOKEN_PID]: (root) CMD (run-parts --report /etc/cron.hourly)
+TOKEN_TIME web-app[TOKEN_PID]: GET"
+norm_9_10.csv,train,0,norm,"Jul 15 10:00:00 erp-auth[5678]: INFO Authentication successful for user 'maria.g'
+Jul 15 10:00:45 erp-api[4567]: GET /api/v1/products/PROD-5544 status=200 OK
+Jul 15 10:00:55 erp-auth[5678]: INFO Authentication successful for user 'maria.g'
+Jul 15 10:","TOKEN_TIME erp-auth[TOKEN_PID]: INFO Authentication successful for user 'maria.g'
+TOKEN_TIME erp-api[TOKEN_PID]: GET /api/v1/products/PROD-TOKEN_NUM status=TOKEN_NUM OK
+TOKEN_TIME erp-auth[TOKEN_PID]: INFO Authentication successful for user 'maria.g'"

@@ -1,0 +1,2 @@
+Granularity,class_weight,threshold_val,Val_Recall_mali,AP,Recall_mali,Precision,F1,FPR_total,FPR_anom,FPR_norm,TP,FP,TN,FN,Threshold_source
+case-level,balanced,0.164056,0.9623,0.6548,0.9375,0.4639,0.6207,0.2537,0.2368,0.2636,45,52,153,3,val_recall>=0.95
