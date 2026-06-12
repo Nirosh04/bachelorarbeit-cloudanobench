@@ -1,0 +1,2 @@
+Granularity,scale_pos_weight,best_iteration,threshold_val,Val_Recall_mali,AP,Recall_mali,Precision,F1,FPR_total,FPR_anom,FPR_norm,TP,FP,TN,FN,Threshold_source
+case-level,5.5,29,0.025625,1.0,0.2439,1.0,0.1897,0.3189,1.0,1.0,1.0,48,205,0,0,val_recall>=0.95

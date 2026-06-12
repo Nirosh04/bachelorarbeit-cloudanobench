@@ -1,0 +1,4 @@
+split,n_total,n_mali,n_anom,n_norm,n_groups,pct_mali
+train,793,122,326,345,28,15.4
+val,206,53,58,95,8,25.7
+test,253,48,76,129,9,19.0

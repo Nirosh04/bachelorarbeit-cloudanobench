@@ -219,15 +219,24 @@ data/
 *.csv
 *.log
 
-# Keep thesis audit artefact referenced in the appendix
+# Keep thesis audit artefacts referenced in the appendix
 !docs/fusion_cases.csv
 !docs/split_assignments.csv
+!docs/split_distribution.csv
 !docs/metric_test_scores.csv
+!docs/metric_val_scores.csv
+!docs/metric_case_features.csv
+!docs/metric_case_val_scores.csv
+!docs/metric_case_test_scores.csv
+!docs/metric_case_results.csv
 !docs/log_test_scores.csv
 !docs/log_val_scores.csv
-!docs/metric_val_scores.csv
+!docs/log_results.csv
+!docs/log_preprocessing_examples.csv
 !docs/threshold_sensitivity_log.csv
 !docs/threshold_sensitivity_metric.csv
+!docs/final_results_table.csv
+!docs/fpr_by_dataset_type.csv
 !docs/bootstrap_ci.csv
 
 # --- Internal planning and audit notes; not part of submission ---

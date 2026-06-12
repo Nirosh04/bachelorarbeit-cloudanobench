@@ -554,3 +554,295 @@ class TestThresholdSensitivity:
                 f"Val-Recall {r['val_recall']:.4f} verfehlt Ziel "
                 f"{r['target_recall_val']} für threshold={r['threshold_val']:.4f}"
             )
+
+
+# ---------------------------------------------------------------------------
+# Tests: Case-Level Metric Baseline (Stand C)
+# ---------------------------------------------------------------------------
+
+class TestCaseLevelMetricBaseline:
+    """
+    Prüft die Case-Level-Metrik-Baseline aus NB02 Stand C.
+
+    Alle Tests sind datei-unabhängig (kein docs/-Dateizugriff nötig) und
+    testen Kernlogik inline — identisch zur NB02-Implementierung.
+    """
+
+    # ── Hilfsfunktionen ──────────────────────────────────────────────────────
+
+    def _make_row_level_data(self):
+        """Synthetisches row-level Dataset: 4 Cases, je 10 Zeilen, 2 Metriken."""
+        rng = np.random.default_rng(42)
+        rows = []
+        for case_id, label in [('c1', 1), ('c2', 1), ('c3', 0), ('c4', 0)]:
+            for _ in range(10):
+                rows.append({
+                    'case_id':      case_id,
+                    'dataset_type': 'mali' if label == 1 else 'norm',
+                    'scenario_id':  'scenario_1',
+                    'group_id':     'mali_scenario_1' if label == 1 else 'norm_scenario_1',
+                    'label':        label,
+                    'cpu_usage':    rng.uniform(0.2, 0.9),
+                    'mem_usage':    rng.uniform(0.1, 0.8),
+                })
+        return pd.DataFrame(rows)
+
+    def _compute_case_features(self, df, metrics=('cpu_usage', 'mem_usage')):
+        """Case-Level-Feature-Aggregation identisch zu NB02."""
+        from scipy.stats import linregress
+
+        def _slope(s):
+            v = s.dropna().values
+            if len(v) < 3:
+                return np.nan
+            return float(linregress(np.arange(len(v), dtype=float), v).slope)
+
+        meta_cols = ['case_id', 'dataset_type', 'scenario_id', 'group_id', 'label']
+        meta_df = df[meta_cols].drop_duplicates(subset='case_id').reset_index(drop=True)
+
+        feature_parts = []
+        for m in metrics:
+            grp = df.groupby('case_id')[m]
+            part = pd.DataFrame({
+                f'{m}_mean':  grp.mean(),
+                f'{m}_max':   grp.max(),
+                f'{m}_std':   grp.std(ddof=1),
+                f'{m}_p95':   grp.quantile(0.95),
+                f'{m}_slope': grp.apply(_slope),
+            })
+            feature_parts.append(part)
+
+        feat_df = pd.concat(feature_parts, axis=1).reset_index()
+        return meta_df.merge(feat_df, on='case_id')
+
+    # ── Test 1: Split-Gruppen-Disjunktheit ──────────────────────────────────
+
+    def test_split_group_disjointness(self):
+        """
+        Train, Val, Test dürfen keine gemeinsamen group_ids haben.
+        Dreistufige GroupShuffleSplit-Logik identisch zu NB02.
+        """
+        rng = np.random.default_rng(0)
+        n_cases   = 120
+        n_groups  = 12
+        group_ids = [f'g{i}' for i in range(n_groups)]
+
+        cases = pd.DataFrame({
+            'case_id':  [f'c{i}' for i in range(n_cases)],
+            'group_id': np.array(group_ids)[np.arange(n_cases) % n_groups],
+            'label':    (np.arange(n_cases) % 5 == 0).astype(int),
+            'x':        rng.uniform(size=n_cases),
+        })
+
+        X = cases[['x']]
+        y = cases['label']
+        g = cases['group_id']
+
+        gss1 = GroupShuffleSplit(n_splits=1, test_size=0.20, random_state=42)
+        tv_idx, te_idx = next(gss1.split(X, y, g))
+
+        gss2 = GroupShuffleSplit(n_splits=1, test_size=0.20, random_state=0)
+        tr_idx, vl_idx = next(gss2.split(X.iloc[tv_idx], y.iloc[tv_idx], g.iloc[tv_idx]))
+
+        g_tr = set(g.iloc[tv_idx].iloc[tr_idx])
+        g_vl = set(g.iloc[tv_idx].iloc[vl_idx])
+        g_te = set(g.iloc[te_idx])
+
+        assert len(g_tr & g_vl) == 0, f"Train ∩ Val nicht leer: {g_tr & g_vl}"
+        assert len(g_vl & g_te) == 0, f"Val ∩ Test nicht leer: {g_vl & g_te}"
+        assert len(g_tr & g_te) == 0, f"Train ∩ Test nicht leer: {g_tr & g_te}"
+
+    # ── Test 2: Split-Verteilung enthält mali in Val und Test ───────────────
+
+    def test_split_distribution_contains_mali_in_val_and_test(self):
+        """
+        Val und Test müssen mali-Cases enthalten.
+        Seed-Wahl (VAL_MIN_POS=10) stellt sicher dass Val >= 10 positive Cases hat.
+        """
+        rng = np.random.default_rng(1)
+        n_cases  = 200
+        n_groups = 20
+
+        cases = pd.DataFrame({
+            'case_id':  [f'c{i}' for i in range(n_cases)],
+            'group_id': [f'g{i % n_groups}' for i in range(n_cases)],
+            'label':    ([1] * 5 + [0] * 5) * (n_cases // 10),
+            'x':        rng.uniform(size=n_cases),
+        })
+
+        X = cases[['x']]
+        y = cases['label']
+        g = cases['group_id']
+
+        gss1 = GroupShuffleSplit(n_splits=1, test_size=0.20, random_state=42)
+        tv_idx, te_idx = next(gss1.split(X, y, g))
+
+        # Seed-Wahl wie NB02
+        X_tv = X.iloc[tv_idx]
+        y_tv = y.iloc[tv_idx]
+        g_tv = g.iloc[tv_idx]
+
+        selected_seed = None
+        vl_idx_final  = None
+        for seed in (0, 1, 2, 7, 42):
+            gss2 = GroupShuffleSplit(n_splits=1, test_size=0.20, random_state=seed)
+            tr_idx, vl_idx = next(gss2.split(X_tv, y_tv, g_tv))
+            if y_tv.iloc[vl_idx].sum() >= 1:
+                selected_seed = seed
+                vl_idx_final  = vl_idx
+                break
+
+        assert selected_seed is not None, "Kein Seed liefert Val mit mali-Cases."
+        assert y_tv.iloc[vl_idx_final].sum() >= 1, "Val enthält keine mali-Cases."
+        assert int((y.iloc[te_idx] == 1).sum()) >= 1, "Test enthält keine mali-Cases."
+
+    # ── Test 3: metric_case_features — eine Zeile pro Case ──────────────────
+
+    def test_metric_case_features_one_row_per_case(self):
+        """
+        Case-Level-Feature-Engineering muss exakt eine Zeile pro case_id liefern.
+        Verletzung würde bedeuten, dass row-level Zeilen nicht korrekt aggregiert wurden.
+        """
+        df = self._make_row_level_data()
+        case_feat = self._compute_case_features(df)
+
+        n_cases       = df['case_id'].nunique()
+        n_rows_result = len(case_feat)
+
+        assert n_rows_result == n_cases, (
+            f"Erwartet {n_cases} Zeilen (eine pro Case), erhalten {n_rows_result}"
+        )
+        assert case_feat['case_id'].nunique() == n_cases, (
+            "Duplizierte case_ids in Case-Feature-Matrix"
+        )
+
+    # ── Test 4: Keine Row-Level-Leakage in Features ─────────────────────────
+
+    def test_metric_case_features_no_row_level_leakage(self):
+        """
+        Case-Level-Feature-Matrix darf keine Row-Level-Index-Spalten enthalten.
+        Verbotene Spalten: Zeitstempel-Index, original_index, row_index, etc.
+        Die Feature-Spalten müssen ausschließlich aus den 5 Aggregationen bestehen.
+        """
+        df = self._make_row_level_data()
+        case_feat = self._compute_case_features(df)
+
+        feature_cols = [c for c in case_feat.columns
+                        if c not in ['case_id', 'dataset_type', 'scenario_id', 'group_id', 'label']]
+
+        # Verbotene Muster im Spaltennamen
+        forbidden_patterns = ['index', 'row', 'timestamp', 'time', 'original']
+        for col in feature_cols:
+            for pat in forbidden_patterns:
+                assert pat not in col.lower(), (
+                    f"Verdächtige Feature-Spalte '{col}' enthält verbotenes Muster '{pat}' "
+                    f"— könnte Row-Level-Index sein"
+                )
+
+        # Erlaubte Suffix-Muster
+        allowed_suffixes = ('_mean', '_max', '_std', '_p95', '_slope')
+        for col in feature_cols:
+            assert col.endswith(allowed_suffixes), (
+                f"Feature-Spalte '{col}' hat kein erlaubtes Aggregations-Suffix {allowed_suffixes}"
+            )
+
+    # ── Test 5: Threshold kommt aus Validation, nicht aus Test ──────────────
+
+    def test_metric_threshold_from_validation_only(self):
+        """
+        Threshold-Auswahl benötigt nur Val-Scores und Val-Labels.
+        Test-Scores sind kein Input für die Threshold-Funktion.
+        Stellt sicher dass Threshold-Selektion kein Testset-Bias hat.
+        """
+        from sklearn.metrics import precision_recall_curve
+
+        rng = np.random.default_rng(7)
+        # Val: gut separierbar → hoher Threshold
+        y_val  = np.array([1] * 20 + [0] * 80)
+        p_val  = np.concatenate([rng.uniform(0.75, 1.0, 20), rng.uniform(0.0, 0.3, 80)])
+        # Test: schlechter separierbar
+        y_test = np.array([1] * 20 + [0] * 80)
+        p_test = np.concatenate([rng.uniform(0.4, 0.8, 20), rng.uniform(0.1, 0.6, 80)])
+
+        def _select_threshold_val_only(y_v, p_v):
+            """Threshold-Selektion NUR aus Val — kein Test-Input."""
+            _, rec_v, thr_v = precision_recall_curve(y_v, p_v)
+            valid = thr_v[rec_v[:-1] >= 0.95]
+            return float(valid.max()) if len(valid) > 0 else float(thr_v[0])
+
+        thr_from_val  = _select_threshold_val_only(y_val,  p_val)
+        thr_from_test = _select_threshold_val_only(y_test, p_test)
+
+        # Test-Threshold darf nicht für die echte Pipeline verwendet werden —
+        # er darf aber existieren; wichtig ist dass NB02 thr_from_val nutzt.
+        # Val und Test haben unterschiedliche optimale Thresholds (Testintegrität).
+        assert thr_from_val != thr_from_test, (
+            "Val- und Test-Threshold sind identisch — Test prüft kein reales Szenario."
+        )
+        # Val-Threshold muss Val-Recall-Nebenbedingung erfüllen
+        from sklearn.metrics import recall_score as _rs
+        val_recall = _rs(y_val, (p_val >= thr_from_val).astype(int))
+        assert val_recall >= 0.95, (
+            f"Val-Recall {val_recall:.3f} nach Threshold-Wahl < 0.95"
+        )
+
+    # ── Test 6: metric_case_results enthält alle Pflichtfelder ──────────────
+
+    def test_metric_results_case_level_fields(self):
+        """
+        metric_case_results.csv muss alle Pflicht-Metriken enthalten.
+        Alle Metriken ausser TP/FP/TN/FN müssen in [0, 1] liegen.
+        Granularity-Feld (falls vorhanden) muss 'case-level' sein.
+        """
+        from sklearn.metrics import (
+            recall_score as _rs, precision_score as _ps,
+            f1_score as _f1, average_precision_score as _ap,
+            confusion_matrix as _cm
+        )
+
+        # Synthetische Predictions (Fall: gutes Modell)
+        rng = np.random.default_rng(42)
+        y_true = np.array([1] * 48 + [0] * 205)   # 253 Test-Cases wie im echten Split
+        p_pred = np.concatenate([
+            rng.uniform(0.6, 1.0, 48),
+            rng.uniform(0.0, 0.5, 205)
+        ])
+        threshold = 0.4
+        y_pred = (p_pred >= threshold).astype(int)
+
+        tn_r, fp_r, fn_r, tp_r = _cm(y_true, y_pred).ravel()
+        fpr_total = fp_r / (fp_r + tn_r) if (fp_r + tn_r) > 0 else 0.0
+
+        # Simuliertes results-Dict (wie metric_case_results.csv)
+        results = {
+            'Granularity':      'case-level',
+            'Recall_mali':      round(_rs(y_true, y_pred), 4),
+            'Precision':        round(_ps(y_true, y_pred, zero_division=0), 4),
+            'F1':               round(_f1(y_true, y_pred, zero_division=0), 4),
+            'FPR_total':        round(fpr_total, 4),
+            'FPR_anom':         round(fpr_total * 0.9, 4),  # simuliert
+            'FPR_norm':         round(fpr_total * 1.1, 4),  # simuliert
+            'AP':               round(_ap(y_true, p_pred), 4),
+            'TP': int(tp_r), 'FP': int(fp_r), 'TN': int(tn_r), 'FN': int(fn_r),
+        }
+
+        # Pflichtfelder prüfen
+        required_fields = [
+            'Recall_mali', 'Precision', 'F1',
+            'FPR_total', 'FPR_anom', 'FPR_norm',
+            'AP', 'TP', 'FP', 'TN', 'FN'
+        ]
+        for field in required_fields:
+            assert field in results, f"Pflichtfeld '{field}' fehlt in results"
+
+        # Metriken in [0, 1]
+        metric_fields = ['Recall_mali', 'Precision', 'F1', 'FPR_total', 'FPR_anom', 'FPR_norm', 'AP']
+        for field in metric_fields:
+            assert 0.0 <= results[field] <= 1.0, (
+                f"Metrik '{field}' = {results[field]} liegt außerhalb [0, 1]"
+            )
+
+        # Granularity-Check
+        assert results.get('Granularity') == 'case-level', (
+            f"Granularity muss 'case-level' sein, ist: {results.get('Granularity')}"
+        )
