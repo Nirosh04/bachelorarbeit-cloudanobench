@@ -1,0 +1,5 @@
+Model,Recall_mali,Precision,F1,FPR_total,FPR_anom,FPR_norm,AP,Threshold,Threshold_source,TP,FP,TN,FN,n_test_cases,n_mali_test,n_anom_test,n_norm_test
+Metrics-only,1.0,0.1897,0.3189,1.0,1.0,1.0,0.2439,0.025625,metric_validation,48,205,0,0,253,48,76,129
+Log-only,0.9375,0.4639,0.6207,0.2537,0.2368,0.2636,0.6548,0.164056,log_validation,45,52,153,3,253,48,76,129
+AND-Fusion,0.9375,0.4639,0.6207,0.2537,0.2368,0.2636,N/A,0.025625,metric_and_log_validation,45,52,153,3,253,48,76,129
+Soft-Fusion,0.9375,0.4455,0.604,0.2732,0.2632,0.2791,0.5756,0.004789,product_validation,45,56,149,3,253,48,76,129

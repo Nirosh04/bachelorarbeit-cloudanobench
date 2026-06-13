@@ -221,6 +221,7 @@ data/
 
 # Keep thesis audit artefacts referenced in the appendix
 !docs/fusion_cases.csv
+!docs/fusion_val_scores.csv
 !docs/split_assignments.csv
 !docs/split_distribution.csv
 !docs/metric_test_scores.csv

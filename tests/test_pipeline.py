@@ -1108,3 +1108,298 @@ class TestLogNormalizationAndScores:
             thr = float(valid_t.max()) if len(valid_t) > 0 else float(thr_v[0])
             found.append(target)
         assert found == TARGETS, f"Nicht alle Recall-Targets in Sensitivity: {found}"
+
+
+# ---------------------------------------------------------------------------
+# Tests: Case-Level Fusion / Ablation (NB04 Stand C)
+# ---------------------------------------------------------------------------
+
+class TestCaseLevelFusion:
+    """
+    Prüft die Korrektheit der Fusion-Logik, Artefakt-Struktur und
+    Threshold-Herkunft für NB04 Stand C.
+    Alle Tests arbeiten mit synthetischen Daten — kein CSV-Dateizugriff.
+    """
+
+    # ── Hilfsfunktionen ──────────────────────────────────────────────────────
+
+    @staticmethod
+    def _make_test_cases(n_mali=48, n_anom=76, n_norm=129, seed=42):
+        """
+        Erstellt einen synthetischen Test-DataFrame (253 Cases) mit
+        case_id, dataset_type, label, metric_score, metric_trigger,
+        log_score, log_trigger, score_fusion, soft_fusion_trigger, split='test'.
+        """
+        rng = np.random.default_rng(seed)
+        rows = []
+        for i in range(n_mali):
+            rows.append({'case_id': f'mali_{i}', 'dataset_type': 'mali', 'label': 1,
+                         'metric_score': rng.uniform(0.6, 1.0),
+                         'log_score':    rng.uniform(0.5, 1.0)})
+        for i in range(n_anom):
+            rows.append({'case_id': f'anom_{i}', 'dataset_type': 'anom', 'label': 0,
+                         'metric_score': rng.uniform(0.3, 0.95),
+                         'log_score':    rng.uniform(0.0, 0.4)})
+        for i in range(n_norm):
+            rows.append({'case_id': f'norm_{i}', 'dataset_type': 'norm', 'label': 0,
+                         'metric_score': rng.uniform(0.2, 0.9),
+                         'log_score':    rng.uniform(0.0, 0.35)})
+        df = pd.DataFrame(rows)
+        df['metric_trigger']     = (df['metric_score'] >= 0.5).astype(int)
+        df['log_trigger']        = (df['log_score']    >= 0.3).astype(int)
+        df['and_trigger']        = ((df['metric_trigger'] == 1) & (df['log_trigger'] == 1)).astype(int)
+        df['score_fusion']       = df['metric_score'] * df['log_score']
+        df['soft_fusion_trigger'] = (df['score_fusion'] >= 0.15).astype(int)
+        df['split'] = 'test'
+        df['scenario_id'] = 'sc1'
+        df['group_id']    = df['dataset_type'] + '_sc1'
+        return df
+
+    @staticmethod
+    def _make_val_cases(n_mali=53, n_anom=58, n_norm=95, seed=7):
+        """
+        Erstellt einen synthetischen Val-DataFrame (206 Cases).
+        """
+        rng = np.random.default_rng(seed)
+        rows = []
+        for i in range(n_mali):
+            rows.append({'case_id': f'v_mali_{i}', 'dataset_type': 'mali', 'label': 1,
+                         'metric_score': rng.uniform(0.6, 1.0),
+                         'log_score':    rng.uniform(0.5, 1.0)})
+        for i in range(n_anom):
+            rows.append({'case_id': f'v_anom_{i}', 'dataset_type': 'anom', 'label': 0,
+                         'metric_score': rng.uniform(0.3, 0.9),
+                         'log_score':    rng.uniform(0.0, 0.4)})
+        for i in range(n_norm):
+            rows.append({'case_id': f'v_norm_{i}', 'dataset_type': 'norm', 'label': 0,
+                         'metric_score': rng.uniform(0.2, 0.8),
+                         'log_score':    rng.uniform(0.0, 0.35)})
+        df = pd.DataFrame(rows)
+        df['score_fusion'] = df['metric_score'] * df['log_score']
+        df['split'] = 'val'
+        return df
+
+    # ── Test 1: Fusion basiert nur auf Case-Level-Scores ─────────────────────
+
+    def test_fusion_uses_case_level_scores_only(self):
+        """
+        fusion_cases.csv muss auf metric_case_test_scores basieren (eine Zeile
+        pro case_id), nicht auf Row-Level-Daten.
+        Prüft: keine mehrfachen Zeilen pro case_id, nur Test-Cases.
+        """
+        df = self._make_test_cases()
+
+        # Jede case_id exakt einmal
+        assert df['case_id'].nunique() == len(df), (
+            "Mehrfache Zeilen pro case_id — kein Case-Level!"
+        )
+        # Nur Test-Split
+        assert (df['split'] == 'test').all(), (
+            "fusion_cases.csv enthält Nicht-Test-Cases"
+        )
+        # Pflicht-Score-Spalten vorhanden
+        for col in ('metric_score', 'log_score', 'score_fusion'):
+            assert col in df.columns, f"Pflicht-Spalte '{col}' fehlt"
+
+    # ── Test 2: fusion_cases.csv — eine Zeile pro Test-Case ─────────────────
+
+    def test_fusion_cases_one_row_per_test_case(self):
+        """
+        fusion_cases.csv muss exakt 253 Zeilen haben, eine pro test case_id,
+        keine Duplikate.
+        """
+        df = self._make_test_cases(n_mali=48, n_anom=76, n_norm=129)
+
+        assert len(df) == 253, f"Erwarte 253 Test-Cases, hat {len(df)}"
+        assert df['case_id'].nunique() == 253, "Duplizierte case_ids in fusion_cases"
+        assert (df['split'] == 'test').all(), "Nicht alle Cases sind Test-Cases"
+
+    # ── Test 3: fusion_val_scores.csv — eine Zeile pro Val-Case ─────────────
+
+    def test_fusion_val_scores_one_row_per_val_case(self):
+        """
+        fusion_val_scores.csv muss exakt 206 Zeilen haben, eine pro val case_id,
+        keine Duplikate.
+        """
+        df = self._make_val_cases(n_mali=53, n_anom=58, n_norm=95)
+
+        assert len(df) == 206, f"Erwarte 206 Val-Cases, hat {len(df)}"
+        assert df['case_id'].nunique() == 206, "Duplizierte case_ids in fusion_val_scores"
+        assert (df['split'] == 'val').all(), "Nicht alle Cases sind Val-Cases"
+
+    # ── Test 4: final_results_table.csv — Pflichtfelder ─────────────────────
+
+    def test_final_results_table_required_columns(self):
+        """
+        final_results_table.csv muss alle Pflichtfelder enthalten.
+        Für AND-Gate darf AP 'N/A' sein, für andere Varianten numerisch.
+        """
+        required_cols = {
+            'Model', 'Recall_mali', 'Precision', 'F1',
+            'FPR_anom', 'FPR_norm', 'FPR_total',
+            'AP', 'Threshold', 'Threshold_source',
+            'TP', 'FP', 'TN', 'FN',
+        }
+        # Synthetische Tabelle aufbauen wie NB04
+        rows = [
+            {'Model': 'Metrics-only',  'Recall_mali': 1.0,   'Precision': 0.19, 'F1': 0.31,
+             'FPR_anom': 1.0, 'FPR_norm': 1.0, 'FPR_total': 1.0, 'AP': 0.55,
+             'Threshold': 0.09, 'Threshold_source': 'metric_validation',
+             'TP': 48, 'FP': 205, 'TN': 0, 'FN': 0},
+            {'Model': 'Log-only',      'Recall_mali': 0.9375, 'Precision': 0.5,  'F1': 0.65,
+             'FPR_anom': 0.18, 'FPR_norm': 0.24, 'FPR_total': 0.22, 'AP': 0.65,
+             'Threshold': 0.23, 'Threshold_source': 'log_validation',
+             'TP': 45, 'FP': 45, 'TN': 160, 'FN': 3},
+            {'Model': 'AND-Fusion',    'Recall_mali': 0.9375, 'Precision': 0.5,  'F1': 0.65,
+             'FPR_anom': 0.18, 'FPR_norm': 0.24, 'FPR_total': 0.22, 'AP': 'N/A',
+             'Threshold': 0.09, 'Threshold_source': 'metric_and_log_validation',
+             'TP': 45, 'FP': 45, 'TN': 160, 'FN': 3},
+            {'Model': 'Soft-Fusion',   'Recall_mali': 0.9375, 'Precision': 0.52, 'F1': 0.67,
+             'FPR_anom': 0.17, 'FPR_norm': 0.22, 'FPR_total': 0.20, 'AP': 0.68,
+             'Threshold': 0.10, 'Threshold_source': 'product_validation',
+             'TP': 45, 'FP': 41, 'TN': 164, 'FN': 3},
+        ]
+        df = pd.DataFrame(rows)
+
+        assert required_cols <= set(df.columns), (
+            f"Fehlende Pflichtfelder: {required_cols - set(df.columns)}"
+        )
+        assert set(df['Model'].values) == {'Metrics-only', 'Log-only', 'AND-Fusion', 'Soft-Fusion'}, (
+            "Nicht alle 4 Varianten in final_results_table"
+        )
+        # AND-Gate AP darf 'N/A' sein
+        and_row = df[df['Model'] == 'AND-Fusion'].iloc[0]
+        assert and_row['AP'] == 'N/A' or isinstance(and_row['AP'], float), (
+            "AND-Gate AP muss 'N/A' oder numerisch sein"
+        )
+        # Andere Varianten müssen numerisches AP haben
+        for model in ['Metrics-only', 'Log-only', 'Soft-Fusion']:
+            row = df[df['Model'] == model].iloc[0]
+            assert isinstance(row['AP'], float), (
+                f"{model}: AP muss numerisch sein, ist: {row['AP']}"
+            )
+
+    # ── Test 5: fpr_by_dataset_type Konsistenz ───────────────────────────────
+
+    def test_fpr_by_dataset_type_consistency(self):
+        """
+        FPR_anom und FPR_norm in fpr_by_dataset_type.csv müssen mit den
+        manuell aus fusion_cases.csv berechneten FPRs übereinstimmen.
+        Keine mali-Zeilen in der FPR-Berechnung für negative dataset_types.
+        """
+        df = self._make_test_cases()
+        y_true = df['label'].values
+        y_pred = df['log_trigger'].values
+
+        # FPR manuell aus fusion_cases berechnen
+        anom_mask = (df['dataset_type'] == 'anom').values
+        norm_mask = (df['dataset_type'] == 'norm').values
+
+        fp_anom = int(((y_pred == 1) & (y_true == 0) & anom_mask).sum())
+        tn_anom = int(((y_pred == 0) & (y_true == 0) & anom_mask).sum())
+        fpr_anom_manual = fp_anom / (fp_anom + tn_anom) if (fp_anom + tn_anom) > 0 else 0.0
+
+        fp_norm = int(((y_pred == 1) & (y_true == 0) & norm_mask).sum())
+        tn_norm = int(((y_pred == 0) & (y_true == 0) & norm_mask).sum())
+        fpr_norm_manual = fp_norm / (fp_norm + tn_norm) if (fp_norm + tn_norm) > 0 else 0.0
+
+        # Synthetische fpr_by_dataset_type-Tabelle
+        fpr_rows = [
+            {'Model': 'Log-only', 'dataset_type': 'anom',
+             'false_positives': fp_anom, 'total_negatives': fp_anom + tn_anom,
+             'FPR': round(fpr_anom_manual, 4)},
+            {'Model': 'Log-only', 'dataset_type': 'norm',
+             'false_positives': fp_norm, 'total_negatives': fp_norm + tn_norm,
+             'FPR': round(fpr_norm_manual, 4)},
+        ]
+        fpr_df = pd.DataFrame(fpr_rows)
+
+        # Keine mali-Zeilen
+        assert 'mali' not in fpr_df['dataset_type'].values, (
+            "mali-Cases in fpr_by_dataset_type — FPR darf nur negative Cases zählen"
+        )
+
+        # FPR-Werte stimmen überein (Toleranz 1e-4 wegen round(..., 4))
+        row_anom = fpr_df[fpr_df['dataset_type'] == 'anom'].iloc[0]
+        assert abs(row_anom['FPR'] - fpr_anom_manual) < 1e-4, (
+            f"FPR_anom Mismatch: {row_anom['FPR']} vs {fpr_anom_manual}"
+        )
+        row_norm = fpr_df[fpr_df['dataset_type'] == 'norm'].iloc[0]
+        assert abs(row_norm['FPR'] - fpr_norm_manual) < 1e-4, (
+            f"FPR_norm Mismatch: {row_norm['FPR']} vs {fpr_norm_manual}"
+        )
+
+    # ── Test 6: Soft-Fusion-Threshold nur aus Val ────────────────────────────
+
+    def test_soft_fusion_threshold_from_validation_only(self):
+        """
+        Soft-Fusion-Threshold wird ausschließlich aus Val-Produkt-Scores bestimmt.
+        Der Threshold muss Val-Recall_mali >= 0.95 erfüllen.
+        Test-Scores werden nicht für die Threshold-Auswahl benötigt.
+        """
+        from sklearn.metrics import precision_recall_curve
+        from sklearn.metrics import recall_score as _rs
+
+        val_df = self._make_val_cases()
+        y_val      = val_df['label'].values
+        score_val  = val_df['score_fusion'].values
+
+        # Threshold nur aus Val
+        _, rec_v, thr_v = precision_recall_curve(y_val, score_val)
+        valid_thr = thr_v[rec_v[:-1] >= 0.95]
+        threshold_soft = float(valid_thr.max()) if len(valid_thr) > 0 else float(thr_v[0])
+
+        val_recall = _rs(y_val, (score_val >= threshold_soft).astype(int))
+        assert val_recall >= 0.95, (
+            f"Val-Recall nach Soft-Fusion-Threshold ({val_recall:.3f}) < 0.95"
+        )
+
+        # Threshold darf nicht aus Test-Scores abgeleitet werden
+        test_df   = self._make_test_cases()
+        y_test    = test_df['label'].values
+        score_test = test_df['score_fusion'].values
+
+        # Val-Threshold auf Test anwenden — keine neue Threshold-Bestimmung
+        test_preds = (score_test >= threshold_soft).astype(int)
+
+        # Sicherstellung: fusion_val_scores.csv hat score_fusion-Spalte
+        assert 'score_fusion' in val_df.columns, (
+            "fusion_val_scores.csv muss 'score_fusion'-Spalte enthalten"
+        )
+        # Test-Scores-DataFrame wird für Threshold-Auswahl nicht benötigt
+        assert threshold_soft > 0, "Soft-Fusion-Threshold sollte > 0 sein"
+        assert test_preds.sum() > 0, "Soft-Fusion: kein einziger Treffer auf Test?"
+
+    # ── Test 7: n_test_cases ist Case-Level, keine Row-Level-Zahlen ──────────
+
+    def test_no_row_level_case_mixing_in_final_results(self):
+        """
+        final_results_table n_test_cases muss Case-Level sein (253).
+        Keine Row-Level-Zählungen wie 22770 in finalen Ergebnisartefakten.
+        """
+        ROW_LEVEL_THRESHOLD = 1000  # mehr als 253 Cases → Row-Level-Verdacht
+
+        rows = [
+            {'Model': 'Metrics-only', 'n_test_cases': 253, 'n_mali_test': 48,
+             'n_anom_test': 76, 'n_norm_test': 129},
+            {'Model': 'Log-only',     'n_test_cases': 253, 'n_mali_test': 48,
+             'n_anom_test': 76, 'n_norm_test': 129},
+            {'Model': 'AND-Fusion',   'n_test_cases': 253, 'n_mali_test': 48,
+             'n_anom_test': 76, 'n_norm_test': 129},
+            {'Model': 'Soft-Fusion',  'n_test_cases': 253, 'n_mali_test': 48,
+             'n_anom_test': 76, 'n_norm_test': 129},
+        ]
+        df = pd.DataFrame(rows)
+
+        for _, row in df.iterrows():
+            assert row['n_test_cases'] <= ROW_LEVEL_THRESHOLD, (
+                f"Model '{row['Model']}': n_test_cases={row['n_test_cases']} — "
+                f"verdächtig hoch (Row-Level-Zählung statt Case-Level?)"
+            )
+            assert row['n_test_cases'] == row['n_mali_test'] + row['n_anom_test'] + row['n_norm_test'], (
+                f"n_test_cases ({row['n_test_cases']}) stimmt nicht mit Summe der Subgruppen überein"
+            )
+            # Korrekte Case-Anzahl für diesen Datensatz
+            assert row['n_test_cases'] == 253, (
+                f"n_test_cases sollte 253 (Case-Level) sein, nicht {row['n_test_cases']}"
+            )

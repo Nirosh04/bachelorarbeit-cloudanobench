@@ -1,0 +1,9 @@
+Model,dataset_type,false_positives,total_negatives,FPR
+Metrics-only,anom,76,76,1.0
+Metrics-only,norm,129,129,1.0
+Log-only,anom,18,76,0.2368
+Log-only,norm,34,129,0.2636
+AND-Fusion,anom,18,76,0.2368
+AND-Fusion,norm,34,129,0.2636
+Soft-Fusion,anom,20,76,0.2632
+Soft-Fusion,norm,36,129,0.2791
