@@ -52,24 +52,29 @@
     Automatisierte Anomalie-Erkennung in Cloud-Infrastrukturen erzeugt häufig eine
     hohe Rate an Fehlalarmen (\emph{False Positives}), die Analysten belasten und
     die Reaktionsfähigkeit auf echte Sicherheitsvorfälle beeinträchtigen. Diese Arbeit
-    entwickelt und evaluiert eine zweistufige hybride Pipeline auf dem CloudAnoBench-Datensatz:
-    Ein metrischer Anomalie-Detektor (XGBoost auf fünf universellen Sys\-tem\-me\-tri\-ken)
-    filtert zunächst verdächtige Cases vor; ein log-basierter Validator
-    (TF-IDF-Vektorisierung mit logistischer Regression) verifiziert diese anschließend
-    anhand des Textkontexts der zugehörigen Log-Dateien. Die Evaluation folgt einem
-    leakage-sicheren Ablationsaufbau mit gruppenbasiertem Train-Validation-Test-Split,
-    bei dem Threshold-Wahl und Early Stopping ausschließlich auf dem Validierungsset erfolgen.
+    untersucht auf dem CloudAnoBench-Datensatz, inwiefern Log-Kontext die
+    False-Positive-Rate einer metrics-basierten Detection reduzieren kann. Dazu wird
+    eine reproduzierbare Case-Level-Pipeline entwickelt, die einen XGBoost-Klassifikator
+    auf aggregierten Systemmetriken, eine log-basierte TF-IDF-Repräsentation mit
+    logistischer Regression sowie zwei einfache Fusionsvarianten vergleicht.
+    Die finale Evaluation erfolgt leakage-sicher mit einem scenario-aware
+    Train-Validation-Test-Split; Early Stopping und Threshold-Wahl werden ausschließlich
+    auf dem Validierungsset vorgenommen, während das Testset nur der finalen Auswertung dient.
 
-    Die Log-Komponente reduziert die False-Positive-Rate von 74{,}7\,\% auf 22{,}0\,\%
-    bei einem Test-Recall von 0{,}9375, der die angestrebte Mindesterkennungsrate von
-    0{,}95 knapp verfehlt. Eine Threshold-Sensitivity-Analyse zeigt, dass dieser
-    Recall-Gap durch keine der getesteten validierungsbasierten Threshold-Policies
-    geschlossen wird. Ein zentraler empirischer Befund ist die Degeneration des
-    AND-Gates: Der metrische Detektor löst beim gewählten Threshold nahezu alle
-    Test-Cases aus (252 von 253), sodass die AND-Fusion funktional äquivalent zur
-    reinen Log-Filterung wird. Der Log-Kontext erweist sich damit als dominanter Faktor
-    der Pipeline; die methodische Einschränkung durch den knapp verfehlten Recall sowie
-    mögliche Erweiterungen der Log-Komponente bleiben offene Forschungsfragen.
+    Die Ergebnisse zeigen, dass die metrics-basierte Baseline auf Case-Ebene zwar
+    alle Angriffs-Cases erkennt (Recall$_\text{mali}$ = 1{,}0000), aber zugleich alle
+    negativen Test-Cases als positiv klassifiziert
+    (FPR$_\text{total}$ = 1{,}0000). Die log-basierte Komponente liefert die beste
+    Trennleistung und reduziert die False-Positive-Rate auf 0{,}2537 bei einem
+    Test-Recall von 0{,}9375; getrennt nach Negativtypen ergeben sich
+    FPR$_\text{anom}$ = 0{,}2368 und FPR$_\text{norm}$ = 0{,}2636. Die AND-Fusion
+    ist funktional identisch zur Log-only-Variante, da der metrische Trigger bei allen
+    253~Test-Cases aktiv ist; die Soft-Fusion verschlechtert sich gegenüber Log-only
+    leicht. Damit trägt auf diesem Benchmark primär der Log-Kontext zur
+    False-Positive-Reduktion bei, während die untersuchten Metrik-Aggregate und
+    Fusionsregeln keinen zusätzlichen Nutzen liefern. Die angestrebte Recall-Schwelle
+    von 0{,}95 wird im finalen Testsplit knapp verfehlt und wird als zentrale
+    Limitation diskutiert.
 }
 
 \include{declaration}

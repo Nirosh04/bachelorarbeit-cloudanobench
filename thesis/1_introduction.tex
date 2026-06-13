@@ -88,32 +88,36 @@ Skalierungsanalyse ist nicht Gegenstand dieser Arbeit
 Die vorliegende Arbeit leistet die folgenden konkreten Beiträge:
 
 \begin{enumerate}
-  \item \textbf{Reproduzierbare hybride Pipeline auf CloudAnoBench.} Es wird eine
+  \item \textbf{Reproduzierbare Case-Level-Pipeline auf CloudAnoBench.} Es wird eine
     in Notebooks dokumentierte, reproduzierbare Pipeline entwickelt, die alle
-    Phasen~--- Datenaufbereitung, Modelltraining, Fusion und Evaluation~--- auf
-    CloudAnoBench umsetzt. Alle Ergebnisse sind durch 24~Unit-Tests und
-    \texttt{random\_state=42} reproduzierbar und nachvollziehbar.
+    Phasen~--- Datenaufbereitung, Case-Level-Feature-Engineering, Modelltraining,
+    Fusion und Evaluation~--- auf CloudAnoBench umsetzt. Alle Ergebnisse sind durch
+    43~Unit-Tests und \texttt{random\_state=42} reproduzierbar und nachvollziehbar.
 
-  \item \textbf{Leakage-bewusste metrische XGBoost-Baseline.} Es wird eine
-    metrische Baseline mit XGBoost~\cite{chen2016xgboost} entwickelt, die
-    explizit Schema-Leakage durch strukturelle Fehlwerte adressiert. Die
-    Beschränkung auf fünf universell verfügbare Features ist eine methodisch
-    begründete Entscheidung zur Vermeidung von Target Leakage.
+  \item \textbf{Case-Level Metrik-Baseline mit XGBoost auf aggregierten Features.}
+    Es wird eine metrische Baseline mit XGBoost~\cite{chen2016xgboost} entwickelt,
+    die direkt auf 25~case-aggregierten Features der fünf universellen Systemmetriken
+    trainiert wird (Mittelwert, Maximum, Standardabweichung, 95.~Perzentil und Trend
+    je Metrik). Die Beschränkung auf die fünf universell verfügbaren Features ist eine
+    methodisch begründete Entscheidung zur Vermeidung von Target Leakage durch
+    strukturelle Fehlwerte.
 
-  \item \textbf{Log-basierte Verifikation mit TF-IDF und logistischer Regression.}
-    Es wird eine Case-Ebene-Komponente implementiert, die Log-Dateien mittels
-    TF-IDF vektorisiert und mit logistischer Regression klassifiziert. Die
-    Komponente wird als interpretierbare Baseline~--- nicht als State-of-the-Art-Ansatz~---
-    eingesetzt und gewährleistet durch eine leakage-sichere Trainings-Evaluations-Trennung
-    des Text-Vokabulars eine valide Evaluation.
+  \item \textbf{Log-basierte Verifikation mit Normalisierung, TF-IDF und logistischer
+    Regression.} Es wird eine Case-Ebene-Komponente implementiert, die Log-Texte
+    vor der TF-IDF-Vektorisierung durch eine regelbasierte Normalisierung synthetischer
+    Artefakte bereinigt (Zeitstempel, IP-Adressen, PIDs, Ports, isolierte Zahlen werden
+    durch generische Token ersetzt). Die logistische Regression auf dem normalisierten
+    TF-IDF-Raum wird als interpretierbare Baseline eingesetzt; das Vokabular wird
+    ausschließlich auf Trainingsdaten gefittet.
 
   \item \textbf{Ablation der Fusionsstrategien einschließlich Degenerationsbefund.}
     Es werden zwei Fusionsstrategien~--- AND-Gate und Soft-Fusion~--- evaluiert
     und mit den Einzelkomponenten verglichen. Ein zentraler empirischer Befund
-    ist die Degeneration des AND-Gates: Der metrische Detektor löst beim gewählten
-    Threshold nahezu alle Test-Cases aus, sodass das AND-Gate funktional äquivalent
-    zur reinen Log-Filterung wird.     Dieser Befund wird in Abschnitt~\ref{sec:degeneration} explizit
-    diskutiert.
+    ist die vollständige Degeneration des AND-Gates: Der metrische Detektor löst
+    beim gewählten Threshold alle 253~Test-Cases aus (100~\%), sodass das AND-Gate
+    funktional äquivalent zur reinen Log-Filterung wird. Soft-Fusion verschlechtert
+    sich gegenüber Log-only. Dieser Befund wird in Abschnitt~\ref{sec:degeneration}
+    explizit diskutiert.
 \end{enumerate}
 
 % ---------------------------------------------------------------------------
