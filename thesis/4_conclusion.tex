@@ -7,36 +7,142 @@
 \subsection{Zusammenfassung}
 % ---------------------------------------------------------------------------
 
-Diese Arbeit hat eine zweistufige hybride Pipeline zur Reduzierung von
-False Positives in der Cloud-Anomalieerkennung entwickelt und auf dem
-synthetischen Benchmark CloudAnoBench evaluiert. Der methodische Fokus lag
-auf einer leakage-sicheren Evaluation unter einer festen
-Recall-Nebenbedingung ($R \geq 0{,}95$), nicht auf der Maximierung
-einzelner Metriken. Beide Komponenten~--- metrischer Detektor und
-Log-Verifikation~--- wurden isoliert und in zwei Fusionskonfigurationen
-evaluiert; alle Ergebnisse sind durch einen festen Zufallszustand und
-13~Unit-Tests reproduzierbar.
+Diese Arbeit hat auf dem synthetischen Benchmark CloudAnoBench untersucht,
+inwiefern Log-Kontext die False-Positive-Rate einer metrics-basierten
+Cloud-Anomalieerkennung reduzieren kann. Dazu wurde eine reproduzierbare
+Case-Level-Pipeline entwickelt, die vier Varianten vergleicht: einen
+XGBoost-Klassifikator auf 25~aggregierten Case-Level-Systemmetriken
+(Metrics-only), eine log-basierte Klassifikation mit TF-IDF und logistischer
+Regression auf normalisierten Log-Texten (Log-only) sowie zwei
+Fusionsvarianten (AND-Fusion, Soft-Fusion). Der Aufbau folgt einem
+scenario-aware dreistufigen Split (Train / Validation / Test) ohne
+Gruppenüberlappung; Threshold-Wahl und Early Stopping wurden ausschließlich
+auf dem Validierungsset vorgenommen, das Testset diente nur der finalen
+Evaluation. Alle Ergebnisse sind durch \texttt{random\_state=42} und
+43~Unit-Tests reproduzierbar.
+
+% ---------------------------------------------------------------------------
+\subsection{Zentrale Ergebnisse}
+% ---------------------------------------------------------------------------
+
+Die Ablation auf dem Testset (253~Cases, davon 48~mali, 76~anom,
+129~norm) ergibt folgendes Bild:
+
+\textbf{Metrics-only} erkennt alle 48 positiven Cases
+(Recall$_{\text{mali}}$ = 1{,}0000), klassifiziert aber gleichzeitig alle
+205 negativen Cases als positiv (FPR$_{\text{total}}$ = 1{,}0000, TN~=~0).
+Die 25~Case-Level-Aggregate der fünf universellen Metriken liefern auf
+diesem Benchmark keine Trennkraft zwischen mali- und anom-/norm-Cases.
+
+\textbf{Log-only} ist die stärkste Variante: FPR$_{\text{total}}$~=~0{,}2537
+(FPR$_{\text{anom}}$~=~0{,}2368, FPR$_{\text{norm}}$~=~0{,}2636) bei
+Recall$_{\text{mali}}$~=~0{,}9375 und AP~=~0{,}6548. Damit werden 45~von~48
+positiven Cases erkannt; 3~Cases bleiben undetektiert
+(False Negatives).
+
+\textbf{AND-Fusion} ist funktional identisch zu Log-only: Der metrische
+Trigger ist bei allen 253~Test-Cases aktiv (metric\_trigger~=~253/253~=~100~\%),
+sodass das AND-Gate vollständig degeneriert.
+
+\textbf{Soft-Fusion} verschlechtert sich gegenüber Log-only in allen Metriken:
+F1~=~0{,}6040 (vs.~0{,}6207), FPR$_{\text{total}}$~=~0{,}2732
+(vs.~0{,}2537), AP~=~0{,}5756 (vs.~0{,}6548). Die Multiplikation mit dem
+schwachen metrischen Score nivelliert die Diskriminanz des Log-Scores.
 
 % ---------------------------------------------------------------------------
 \subsection{Beantwortung der Forschungsfrage}
 % ---------------------------------------------------------------------------
 
-Die Forschungsfrage wird bejaht: Die Log-Komponente reduziert die FPR von
-$79{,}8\,\%$ auf $26{,}3\,\%$ bei einem Recall von $0{,}958$~--- die
-Recall-Nebenbedingung ist damit erfüllt. Die vollständige Ergebnisanalyse
-und Argumentation findet sich in Abschnitt~\ref{sec:ablation} und den
-Abschnitten zur Diskussion.
+Die Forschungsfrage lautete, ob eine zweistufige hybride Pipeline die
+False-Positive-Rate auf CloudAnoBench deutlich senken kann, ohne die
+Recall-Rate unter 0{,}95 zu drücken. Die Ergebnisse beantworten diese Frage
+differenziert.
 
-Der qualifizierende Befund ist, dass Log-Kontext auf Case-Ebene als
-eigenständiger Prädiktor dominiert und die Fusionsstufe keinen zusätzlichen
-Beitrag liefert: Das AND-Gate verliert aufgrund des niedrigen
-Metrik-Thresholds seine Filterfunktion auf Metrikseite; die Soft-Fusion
-erzielt eine niedrigere AP als die Log-Komponente allein. Die Nützlichkeit
-einer AND-Fusion hängt damit entscheidend von der Kalibrierung des
-Metrik-Triggers auf Case-Ebene ab, die in dieser Arbeit nicht umgesetzt wurde.
+Log-Kontext reduziert die FPR$_{\text{total}}$ deutlich: Gegenüber der
+nicht-selektiven Metrik-Baseline (FPR~=~1{,}0000) erreicht Log-only
+eine FPR$_{\text{total}}$ von 0{,}2537. Der Hauptnutzen liegt damit primär
+in der log-basierten Modellierung, nicht in der Fusion. Die ursprüngliche
+Erwartung, dass eine kombinierte Metrik-Log-Pipeline besser abschneidet als
+Log-only allein, wird durch die Ergebnisse nicht bestätigt: Weder AND-Fusion
+noch Soft-Fusion liefern einen Zusatznutzen.
 
-Diese Befunde gelten für den CloudAnoBench-Datensatz unter den gewählten
-Konfigurationen und sind ohne weitere Evidenz nicht zu verallgemeinern.
+Der Test-Recall$_{\text{mali}}$ von 0{,}9375 (45/48) verfehlt die
+angestrebte Schwelle von 0{,}95 knapp. Die Threshold-Sensitivity-Analyse
+belegt, dass kein validierungsbasierter Threshold diesen Gap schließt~---
+die drei nicht-detektierten Fälle sind strukturell unterhalb jedes
+validierten Schwellenwerts. Dieser Befund ist methodisch transparent: Eine
+testbasierte Nachoptimierung wurde bewusst nicht vorgenommen.
+
+Die Befunde gelten für CloudAnoBench unter den gewählten Konfigurationen.
+Ob die Ergebnisse auf andere Benchmark-Datensätze oder reale Infrastrukturen
+übertragbar sind, bleibt durch diese Arbeit offen.
+
+% ---------------------------------------------------------------------------
+\subsection{Methodische Bedeutung}
+% ---------------------------------------------------------------------------
+
+Mehrere methodische Entscheidungen haben die Validität der Evaluation
+wesentlich bestimmt.
+
+Die \textbf{Case-Level-Auswertung} ist für die Security-Detection konzeptuell
+angemessen: Ein Alert-Entscheid bezieht sich auf eine Beobachtungseinheit
+als Ganzes, nicht auf einen einzelnen Messpunkt. Ein ausschließlich
+Row-Level-Vergleich hätte die AP-Werte strukturell verzerrt und einen
+direkten Vergleich zwischen Metrik- und Log-Komponente unmöglich gemacht.
+
+Die \textbf{Log-Normalisierung} (Ersetzen von Zeitstempeln, IP-Adressen,
+PIDs, Ports und isolierten Zahlen durch generische Token vor der TF-IDF-Vektorisierung)
+stellt sicher, dass das Modell auf semantisch relevanten Mustern und nicht
+auf synthetischen Artefakten des Benchmark-Generators trainiert wird. Dieser
+Schritt ist methodisch sauber, weil er deterministisch und label-unabhängig
+ist.
+
+Die \textbf{getrennte FPR-Auswertung} für anom und norm zeigt, dass beide
+Negativtypen relevant und ähnlich schwer von mali zu trennen sind
+(FPR$_{\text{anom}}$~=~0{,}2368, FPR$_{\text{norm}}$~=~0{,}2636 für Log-only).
+Eine aggregierte FPR allein hätte diese Differenzierung verborgen.
+
+Die \textbf{validierungsbasierte Threshold-Wahl} ohne testbasierte Anpassung
+verhindert Informationsleck aus dem Testset und macht die Evaluation
+unabhängig von post-hoc-Optimierungen~--- auch wenn dies den knapp
+verfehlten Test-Recall bedingt.
+
+% ---------------------------------------------------------------------------
+\subsection{Limitationen}
+% ---------------------------------------------------------------------------
+
+Mehrere Einschränkungen begrenzen die Generalisierbarkeit der Befunde.
+
+\textbf{Verfehlte Recall-Zielschwelle.} Der Test-Recall$_{\text{mali}}$ von
+0{,}9375 liegt knapp unter der angestrebten Schwelle von 0{,}95; drei
+positive Cases bleiben undetektiert. Dies ist eine zentrale Einschränkung
+des Ansatzes und kein Threshold-Problem, wie die Sensitivity-Analyse zeigt.
+
+\textbf{Geringe Diskriminationskraft der Metrik-Komponente.} Die 25~aggregierten
+Case-Level-Features der fünf universellen Metriken reichen nicht aus, um
+mali-Cases von anom-/norm-Cases zu trennen. Typspezifische Features oder
+ausdrucksstärkere Modellklassen könnten diese Einschränkung möglicherweise
+mildern, bergen aber das Risiko von Schema-Leakage.
+
+\textbf{Einfache Fusionsstrategien.} Die untersuchten Fusionsmethoden~---
+binäres AND-Gate und Produkt-Score~--- gehören zu den einfachsten möglichen
+Kombinationsregeln. Die Ergebnisse zeigen nicht, dass Log-Fusion im
+Allgemeinen keinen Nutzen hat, sondern dass diese spezifischen einfachen
+Fusionsregeln auf diesem Benchmark keinen Zusatznutzen gegenüber Log-only
+liefern.
+
+\textbf{Einzelner Split.} Es wurde lediglich ein einziger scenario-aware
+Train-Validation-Test-Split verwendet; die Streuung der Ergebnisse über
+verschiedene Splits ist unbekannt.
+
+\textbf{Synthetischer Datensatz.} CloudAnoBench basiert auf kontrollierten
+Anomalie-Injektionen. Ob die gelernten Log-Muster auf reale
+Infrastrukturdaten mit natürlichen Klassenverteilungen und variablen
+Log-Formaten übertragbar sind, ist nicht untersucht.
+
+\textbf{Keine Sequenzmodelle oder semantische Log-Encoder.} TF-IDF und
+logistische Regression sind eine interpretierbare, aber begrenzte Baseline;
+strukturierte Log-Parser oder tiefe Sprachmodelle wurden nicht untersucht.
 
 % ---------------------------------------------------------------------------
 \subsection{Ausblick}
@@ -46,42 +152,49 @@ Aus den Befunden dieser Arbeit ergeben sich mehrere konkrete Ansatzpunkte
 für zukünftige Arbeiten:
 
 \begin{description}
-  \item[Case-Level-Kalibrierung des Metrik-Triggers.]
-    Die AND-Gate-Degeneration ist eine direkte Folge der Threshold-Wahl auf
-    Zeilenebene. Eine Kalibrierung direkt auf aggregierten Case-Scores~---
-    oder der Einsatz alternativer Aggregationsregeln wie Median statt
-    Maximum~--- würde die AND-Gate-Logik erst operativ wirksam machen und
-    den eigenständigen Beitrag der Metrik-Komponente zur Fusion prüfbar machen.
+  \item[Ausdrucksstärkere Metrik-Features.]
+    Zeitfenster-Aggregate, typspezifische Features oder tiefe Sequenzmodelle
+    auf Zeitreihenbasis könnten die Diskriminationskraft der metrischen
+    Komponente verbessern~--- sofern Schema-Leakage vermieden wird. Eine
+    selektivere Metrik-Komponente würde auch die AND-Gate-Fusion aus ihrer
+    Degeneration befreien.
 
-  \item[Alternative Fusionsregeln.]
-    Neben AND-Gate und Produkt-Regel existieren weitere Fusionsstrategien~---
-    etwa Summen-Regel, gewichtete Mehrheitsentscheidung oder lernbasierte
-    Kombinatoren. Ob solche Regeln auf CloudAnoBench einen messbaren Vorteil
-    gegenüber der Log-Komponente allein erzielen, bleibt eine offene Frage.
+  \item[Robustere Fusionsregeln.]
+    Kalibrierte Scores, gewichtete Kombinatoren oder lernbasierte
+    Fusionsmodelle könnten den Informationsgehalt beider Modalitäten besser
+    ausnutzen als das ungewichtete Produkt oder das binäre AND-Gate. Ob
+    solche Regeln auf CloudAnoBench einen Vorteil gegenüber Log-only erzielen,
+    bleibt eine offene Frage.
 
-  \item[Weiterentwicklung der Log-Komponente.]
-    Die log-basierte Verifikation wurde in dieser Arbeit als interpretierbare
-    Baseline mit TF-IDF und logistischer Regression umgesetzt. Ob
-    struktur-bewusste Log-Parser, vortrainierte Sprachmodelle oder
-    Embedding-Methoden auf diesem Datensatz zu einer weiteren FPR-Reduktion
-    führen, wäre eine naheliegende Erweiterung.
+  \item[Sequenzielle Log-Modelle und strukturiertes Log-Parsing.]
+    Ob struktur-bewusste Log-Parser, vortrainierte Sprachmodelle oder
+    Embedding-Methoden die FPR weiter reduzieren, wäre eine naheliegende
+    Erweiterung der Log-Komponente über die TF-IDF-Baseline hinaus.
 
-  \item[Statistische Absicherung.]
-    Die berichteten Metriken basieren auf einem einzigen Trainings"=Test"=Split.
-    Die Frage, wie stabil die Ergebnisse über verschiedene Splits sind, ließe
-    sich durch Bootstrap-Konfidenzintervalle oder wiederholte Splits mit
-    unterschiedlichen Zufallszuständen beantworten.
+  \item[Weitere Splits und statistische Absicherung.]
+    Wiederholte Splits mit unterschiedlichen Zufallszuständen oder
+    Bootstrap-Konfidenzintervalle würden die Stabilität der Ergebnisse
+    quantifizierbar machen. Das Wilson-Konfidenzintervall für den
+    Test-Recall (0{,}9375 bei $n=48$) schließt den Zielwert 0{,}95 mit ein,
+    was die statistische Interpretation des knapp verfehlten Recall-Ziels
+    relativiert.
+
+  \item[Analyse der False-Negative-Cases.]
+    Die drei nicht-detektierten positiven Cases ($\text{FN}=3$) sind
+    strukturell unterhalb jedes validierten Thresholds. Eine qualitative
+    Analyse~--- etwa hinsichtlich Log-Inhalt, Szenariotyp oder Metrik-Profil~---
+    könnte aufzeigen, ob gemeinsame Muster existieren und gezielt adressiert
+    werden können.
 
   \item[Evaluation auf realem Produktions-Traffic.]
     CloudAnoBench verwendet kontrollierte Anomalie-Injektionen. Ob die
-    gelernten Muster auf reale Infrastrukturdaten~--- mit natürlichen
+    gelernten Muster auf reale Infrastrukturdaten mit natürlichen
     Klassenverteilungen, variablen Log-Formaten und unbekannten
-    Anomalietypen~--- übertragbar sind, ist durch diese Arbeit nicht
-    untersucht und stellt eine wichtige Anschlussfrage dar.
-
-  \item[Modularisierung der Pipeline.]
-    Die funktionale Pipeline liegt derzeit überwiegend in Jupyter Notebooks.
-    Eine Modularisierung in eine paketierbare, konfigurierbare
-    Software-Pipeline würde die Wiederverwendbarkeit und Anpassbarkeit an
-    andere Datensätze wesentlich verbessern.
+    Anomalietypen übertragbar sind, bleibt eine wichtige offene Frage.
 \end{description}
+
+Die Arbeit zeigt damit weniger eine universelle Verbesserung durch Fusion als
+vielmehr die Notwendigkeit, Log-Kontext und Evaluationsgranularität in der
+Cloud-Anomaly-Detection sorgfältig zu berücksichtigen~--- und methodisch
+sauber zwischen dem Beitrag einzelner Komponenten und dem Beitrag ihrer
+Kombination zu unterscheiden.
