@@ -79,8 +79,9 @@ Die für diese Arbeit relevanten Metriken sind:
   \item[Precision] $P = \frac{TP}{TP + FP}$: Anteil der korrekt als positiv
     klassifizierten Instanzen an allen als positiv gekennzeichneten.
   \item[Recall] $R = \frac{TP}{TP + FN}$: Anteil der tatsächlich positiven
-    Instanzen, die erkannt werden. In dieser Arbeit als harte Nebenbedingung
-    ($R \geq 0{,}95$) formuliert.
+    Instanzen, die erkannt werden. In dieser Arbeit dient $R \geq 0{,}95$ als
+    Zielkriterium für die Threshold-Wahl auf dem Validierungsset; ob dieser Wert
+    im unabhängigen Testsplit erreicht wird, ist eine empirische Frage.
   \item[False-Positive-Rate] $\text{FPR} = \frac{FP}{FP + TN}$: Anteil der
     negativen Instanzen, die fälschlicherweise als positiv eingestuft werden.
     Dies ist die zentrale operative Zielgröße.
@@ -177,34 +178,44 @@ sicherstellt, dass kein Szenario gleichzeitig in Trainings- und Testmenge vertre
 ist.
 
 % ---------------------------------------------------------------------------
-\subsection{Klassifikatorfusion und Case-Level-Aggregation}
+\subsection{Klassifikatorfusion und Case-Level-Evaluation}
 % ---------------------------------------------------------------------------
 
 Die Kombination mehrerer Klassifikatoren zu einem gemeinsamen Entscheidungssystem
 ist ein etabliertes Forschungsfeld. Kittler~et~al.~\cite{kittler1998combining}
 systematisieren verschiedene Fusionsregeln~--- darunter Produkt-Regel, Summen-Regel
 und Mehrheitsentscheid~--- und zeigen, unter welchen Voraussetzungen sie
-asymptotisch äquivalent sind. Das in dieser Arbeit verwendete AND-Gate stellt
-eine konservative Fusionsstrategie dar: Ein Alert wird nur dann ausgegeben, wenn
-\emph{beide} Komponenten~--- metrischer Detektor und Log-Klassifikator~--- unabhängig
-voneinander positiv entscheiden. Das AND-Gate maximiert damit die Präzision auf
-Kosten des Recalls. Ob diese Strategie im konkreten Evaluationsszenario einen
-Mehrwert gegenüber einer Einzelkomponente liefert, ist eine empirische Frage, die
-in Abschnitt~\ref{sec:ablation} untersucht wird.
+asymptotisch äquivalent sind.
 
-Eine eigene methodische Herausforderung ergibt sich aus der unterschiedlichen
-Granularität beider Komponenten: Der metrische Detektor operiert auf Zeilenebene
-(einzelne Messpunkte), die Log-Analyse hingegen auf Case-Ebene (eine Log-Datei
-pro Case). Um beide Ebenen zu vereinen, müssen die zeilenweisen Scores des
-metrischen Detektors auf Case-Ebene aggregiert werden. In dieser Arbeit wird das
-Maximum der zeilenweisen Wahrscheinlichkeiten eines Cases verwendet:
+In dieser Arbeit wird die Fusionsentscheidung direkt auf Case-Ebene getroffen.
+Beide Komponenten liefern pro Case~$c$ einen Wahrscheinlichkeitswert:
+$\hat{p}_{\text{metric}}(c)$ aus dem metrischen XGBoost-Klassifikator, der auf
+25~Case-Level-Aggregaten der fünf universellen Systemmetriken trainiert wird
+(je Metrik: Mittelwert, Maximum, Standardabweichung, 95.~Perzentil und linearer
+Trend), sowie $\hat{p}_{\text{log}}(c)$ aus der log-basierten logistischen
+Regression auf dem normalisierten TF-IDF-Raum. Beide Komponenten arbeiten direkt
+auf Case-Ebene; ein zwischengeschalteter Row-Level-Aggregationsschritt entfällt.
+
+Zwei Fusionsstrategien werden untersucht. Das \textbf{AND-Gate} stellt eine
+konservative Strategie dar: Ein Alert wird nur ausgegeben, wenn \emph{beide}
+Komponenten positiv entscheiden:
 \[
-  \hat{p}_{\text{case}} = \max_{i \in \text{case}} \hat{p}_{i}
+  \hat{y}_{\text{AND}}(c) = \mathbf{1}\!\bigl[
+    \hat{p}_{\text{metric}}(c) \geq \tau_{\text{metric}}
+    \;\wedge\;
+    \hat{p}_{\text{log}}(c) \geq \tau_{\text{log}}
+  \bigr]
 \]
-Diese Max-Aggregation entspricht der Annahme, dass ein einzelner anomaler
-Messpunkt innerhalb eines Cases als hinreichendes Indiz für eine Auffälligkeit
-gewertet wird. Konzeptuell ist dieses Prinzip verwandt mit der Instanz-Annahme
-im \emph{Multiple-Instance Learning}~\cite{maron1998mil}: Ein Bag (hier: Case)
-gilt als positiv, wenn mindestens eine seiner Instanzen (hier: Zeilen) positiv ist.
-Die Max-Aggregation ist keine optimierte Fusionsstrategie, sondern eine methodisch
-begründbare und einfach implementierbare Heuristik.
+Die \textbf{Soft-Fusion} kombiniert beide Scores als Produkt:
+\[
+  s_{\text{fusion}}(c) = \hat{p}_{\text{metric}}(c) \times \hat{p}_{\text{log}}(c)
+\]
+Da beide Faktoren im Intervall $[0,1]$ liegen, gilt dies auch für
+$s_{\text{fusion}}(c)$. Kittler~et~al.~\cite{kittler1998combining} zeigen, dass
+die Produktregel unter der Annahme unabhängiger Klassifikatoren asymptotisch
+optimal ist; wie gut diese Annahme auf den vorliegenden Daten zutrifft, ist eine
+empirische Frage. Die Thresholds $\tau_{\text{metric}}$ und $\tau_{\text{log}}$
+werden ausschließlich auf dem Validierungsset bestimmt; das Testset wird nur zur
+finalen Evaluation verwendet. Ob die AND-Gate-Strategie gegenüber einer
+Einzelkomponente einen Mehrwert liefert, wird in Abschnitt~\ref{sec:ablation}
+untersucht.
