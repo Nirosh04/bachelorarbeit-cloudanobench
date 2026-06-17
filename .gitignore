@@ -240,6 +240,12 @@ data/
 !docs/final_results_table.csv
 !docs/fpr_by_dataset_type.csv
 !docs/bootstrap_ci.csv
+!docs/false_negative_cases.csv
+!docs/false_negative_summary.md
+!docs/false_positive_by_scenario.csv
+!docs/false_positive_by_scenario_top.csv
+!docs/false_positive_scenario_summary.md
+!docs/fp_by_scenario_logonly.png
 
 # --- Internal planning and audit notes; not part of submission ---
 notes.md

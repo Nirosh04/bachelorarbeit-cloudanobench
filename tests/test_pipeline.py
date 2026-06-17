@@ -1403,3 +1403,152 @@ class TestCaseLevelFusion:
             assert row['n_test_cases'] == 253, (
                 f"n_test_cases sollte 253 (Case-Level) sein, nicht {row['n_test_cases']}"
             )
+
+
+# ---------------------------------------------------------------------------
+# Tests: Fehleranalyse (Notebook 05)
+# ---------------------------------------------------------------------------
+
+import os
+DOCS_DIR = os.path.join(os.path.dirname(__file__), '..', 'docs')
+
+
+class TestFalseNegativeCases:
+    """Tests für docs/false_negative_cases.csv (Analyse 1 aus NB05)."""
+
+    def _load_fn(self):
+        path = os.path.join(DOCS_DIR, 'false_negative_cases.csv')
+        assert os.path.exists(path), (
+            f"false_negative_cases.csv nicht gefunden unter {path}. "
+            "Bitte zuerst notebooks/05_error_analysis.ipynb ausführen."
+        )
+        return pd.read_csv(path)
+
+    def test_false_negative_cases_exist_and_are_mali(self):
+        """Artefakt existiert, enthält genau 3 Zeilen, alle mali, label==1, log_trigger==0."""
+        df = self._load_fn()
+        assert len(df) == 3, f"Erwartet genau 3 FN-Cases, gefunden: {len(df)}"
+        assert (df['dataset_type'] == 'mali').all(), \
+            "Alle FN-Cases müssen dataset_type=='mali' haben"
+        assert (df['label'] == 1).all(), \
+            "Alle FN-Cases müssen label==1 haben"
+        assert (df['log_trigger'] == 0).all(), \
+            "Alle FN-Cases müssen log_trigger==0 haben"
+
+    def test_false_negative_threshold_margin(self):
+        """log_margin_to_threshold == log_score - log_threshold, und alle < 0."""
+        df = self._load_fn()
+        required = {'log_score', 'log_threshold', 'log_margin_to_threshold'}
+        assert required.issubset(df.columns), \
+            f"Fehlende Spalten: {required - set(df.columns)}"
+        computed = df['log_score'] - df['log_threshold']
+        diff = (computed - df['log_margin_to_threshold']).abs()
+        assert (diff < 1e-5).all(), \
+            f"log_margin_to_threshold stimmt nicht überein: max delta = {diff.max()}"
+        assert (df['log_margin_to_threshold'] < 0).all(), \
+            "Alle log_margin_to_threshold müssen negativ sein (log_score < threshold)"
+
+    def test_false_negative_required_columns(self):
+        """Alle erforderlichen Spalten vorhanden."""
+        df = self._load_fn()
+        required_cols = [
+            'case_id', 'dataset_type', 'scenario_id', 'group_id', 'label',
+            'log_score', 'log_threshold', 'log_margin_to_threshold',
+            'metric_score', 'metric_trigger', 'log_trigger', 'and_trigger',
+            'score_fusion', 'soft_fusion_trigger',
+            'raw_log_excerpt', 'normalized_log_excerpt',
+            'attack_keyword_hits', 'qualitative_note',
+        ]
+        missing = [c for c in required_cols if c not in df.columns]
+        assert not missing, f"Fehlende Spalten in false_negative_cases.csv: {missing}"
+
+
+class TestFalsePositiveByScenario:
+    """Tests für docs/false_positive_by_scenario.csv (Analyse 2 aus NB05)."""
+
+    def _load_fp(self):
+        path = os.path.join(DOCS_DIR, 'false_positive_by_scenario.csv')
+        assert os.path.exists(path), (
+            f"false_positive_by_scenario.csv nicht gefunden unter {path}. "
+            "Bitte zuerst notebooks/05_error_analysis.ipynb ausführen."
+        )
+        return pd.read_csv(path)
+
+    def test_false_positive_by_scenario_consistency(self):
+        """Summe FP für Log-only == 52; FPR_anom ≈ 0.2368; FPR_norm ≈ 0.2636."""
+        df = self._load_fp()
+        required = {'model', 'dataset_type', 'scenario_id',
+                    'n_cases', 'false_positives', 'fpr'}
+        assert required.issubset(df.columns), \
+            f"Fehlende Spalten: {required - set(df.columns)}"
+
+        log_df = df[df['model'] == 'Log-only']
+        assert len(log_df) > 0, "Keine Log-only-Zeilen in false_positive_by_scenario.csv"
+
+        total_fp = log_df['false_positives'].sum()
+        assert total_fp == 52, \
+            f"Log-only gesamt-FP erwartet 52, gefunden {total_fp}"
+
+        anom_log = log_df[log_df['dataset_type'] == 'anom']
+        fpr_anom = anom_log['false_positives'].sum() / anom_log['n_cases'].sum()
+        assert abs(fpr_anom - 0.2368) < 0.001, \
+            f"FPR_anom erwartet ~0.2368, gefunden {fpr_anom:.4f}"
+
+        norm_log = log_df[log_df['dataset_type'] == 'norm']
+        fpr_norm = norm_log['false_positives'].sum() / norm_log['n_cases'].sum()
+        assert abs(fpr_norm - 0.2636) < 0.001, \
+            f"FPR_norm erwartet ~0.2636, gefunden {fpr_norm:.4f}"
+
+    def test_false_positive_fpr_in_unit_interval(self):
+        """FPR-Werte liegen im Intervall [0, 1]."""
+        df = self._load_fp()
+        assert (df['fpr'] >= 0).all() and (df['fpr'] <= 1.0).all(), \
+            "FPR-Werte außerhalb [0, 1] gefunden"
+
+    def test_false_positive_fp_leq_n_cases(self):
+        """false_positives <= n_cases für alle Zeilen."""
+        df = self._load_fp()
+        assert (df['false_positives'] <= df['n_cases']).all(), \
+            "false_positives > n_cases in mindestens einer Zeile"
+
+    def test_false_positive_four_models_present(self):
+        """Alle vier Modelle sind im Artefakt vertreten."""
+        df = self._load_fp()
+        expected = {'Metrics-only', 'Log-only', 'AND-Fusion', 'Soft-Fusion'}
+        found = set(df['model'].unique())
+        assert expected == found, \
+            f"Modelle stimmen nicht überein. Erwartet: {expected}, gefunden: {found}"
+
+    def test_metrics_only_fpr_is_one(self):
+        """Metrics-only hat FPR=1.0 für alle anom/norm-Szenarien (metric_trigger=253/253)."""
+        df = self._load_fp()
+        met = df[df['model'] == 'Metrics-only']
+        assert (met['fpr'] == 1.0).all(), \
+            "Metrics-only sollte FPR=1.0 in allen Szenarien haben"
+
+
+class TestErrorAnalysisDoesNotChangeFinalResults:
+    """Stellt sicher, dass die Fehleranalyse die final_results_table.csv nicht verändert."""
+
+    def _load_results(self):
+        path = os.path.join(DOCS_DIR, 'final_results_table.csv')
+        assert os.path.exists(path), f"final_results_table.csv fehlt unter {path}"
+        return pd.read_csv(path)
+
+    def test_error_analysis_does_not_change_final_results(self):
+        """Kernzahlen in final_results_table.csv bleiben Stand-C-konform."""
+        df = self._load_results()
+
+        def get_val(model, col):
+            rows = df[df['Model'] == model]
+            assert len(rows) == 1, f"Modell '{model}' nicht eindeutig in final_results_table"
+            return float(rows.iloc[0][col])
+
+        assert abs(get_val('Log-only',    'Recall_mali') - 0.9375) < 1e-4, \
+            "Log-only Recall_mali verändert!"
+        assert abs(get_val('Log-only',    'FPR_total')   - 0.2537) < 1e-4, \
+            "Log-only FPR_total verändert!"
+        assert abs(get_val('Soft-Fusion', 'AP')          - 0.5756) < 1e-4, \
+            "Soft-Fusion AP verändert!"
+        assert abs(get_val('Metrics-only','FPR_total')   - 1.0)    < 1e-4, \
+            "Metrics-only FPR_total verändert!"

@@ -1,0 +1,43 @@
+case_id,dataset_type,scenario_id,group_id,label,log_score,log_threshold,log_margin_to_threshold,metric_score,metric_trigger,log_trigger,and_trigger,score_fusion,soft_fusion_trigger,raw_log_excerpt,normalized_log_excerpt,attack_keyword_hits,qualitative_note
+mali_6_10.csv,mali,scenario_6,mali_scenario_6,1,0.071899,0.164056,-0.092157,0.032865,1,0,0,0.002363,0,"Aug 26 10:00:07 server-1 web-app[3451]: GET /api/v1/status status=200 OK
+Aug 26 10:00:08 server-1 systemd[1]: Starting daily clean up activities...
+Aug 26 10:00:10 server-1 systemd[1]: Starting daily clean up activities...
+Aug 26 10:00:16 server-1 web-app[3451]: GET /api/v1/status status=200 OK
+Aug 26 10:00:24 server-1 systemd[1]: Starting daily clean up activities...
+Aug 26 10:00:24 server-1 web-app[3451]: GET /api/v1/status status=200 OK
+Aug 26 10:00:29 server-1 web-app[3451]: GET /api/v1/stat","TOKEN_TIME server-TOKEN_NUM web-app[TOKEN_PID]: GET /api/v1/status status=TOKEN_NUM OK
+TOKEN_TIME server-TOKEN_NUM systemd[TOKEN_PID]: Starting daily clean up activities...
+TOKEN_TIME server-TOKEN_NUM systemd[TOKEN_PID]: Starting daily clean up activities...
+TOKEN_TIME server-TOKEN_NUM web-app[TOKEN_PID]: GET /api/v1/status status=TOKEN_NUM OK
+TOKEN_TIME server-TOKEN_NUM systemd[TOKEN_PID]: Starting daily clean up activities...
+TOKEN_TIME server-TOKEN_NUM web-app[TOKEN_PID]: GET /api/v1/status s","{'sshd': 1, 'accepted': 1, 'cron': 80, 'root': 40, '/etc/': 40}",score moderately below threshold; contains several attack-related tokens
+mali_6_16.csv,mali,scenario_6,mali_scenario_6,1,0.067102,0.164056,-0.096954,0.025625,1,0,0,0.00172,0,"Jul 02 14:00:00 systemd[1]: Starting daily clean up activities...
+Jul 02 14:00:00 web-app[3456]: GET /api/v1/health status=200 OK
+Jul 02 14:00:00 CRON[8765]: (root) CMD (run-parts --report /etc/cron.hourly)
+Jul 02 14:00:40 web-app[3456]: GET /api/v1/health status=200 OK
+Jul 02 14:01:20 web-app[3456]: GET /api/v1/health status=200 OK
+Jul 02 14:01:30 systemd[1]: Starting daily clean up activities...
+Jul 02 14:02:00 web-app[3456]: GET /api/v1/health status=200 OK
+Jul 02 14:02:05 CRON[8765]: (root) ","TOKEN_TIME systemd[TOKEN_PID]: Starting daily clean up activities...
+TOKEN_TIME web-app[TOKEN_PID]: GET /api/v1/health status=TOKEN_NUM OK
+TOKEN_TIME CRON[TOKEN_PID]: (root) CMD (run-parts --report /etc/cron.hourly)
+TOKEN_TIME web-app[TOKEN_PID]: GET /api/v1/health status=TOKEN_NUM OK
+TOKEN_TIME web-app[TOKEN_PID]: GET /api/v1/health status=TOKEN_NUM OK
+TOKEN_TIME systemd[TOKEN_PID]: Starting daily clean up activities...
+TOKEN_TIME web-app[TOKEN_PID]: GET /api/v1/health status=TOKEN_NUM OK
+TOKEN","{'sshd': 2, 'cron': 8, 'root': 4, '/etc/': 4}",score moderately below threshold; contains several attack-related tokens
+mali_6_24.csv,mali,scenario_6,mali_scenario_6,1,0.055297,0.164056,-0.108759,0.028533,1,0,0,0.001578,0,"Aug 26 10:00:05 systemd[1]: Starting daily clean up activities...
+Aug 26 10:00:20 web-app[1357]: GET /api/v1/health status=200 OK
+Aug 26 10:00:45 CRON[6543]: (root) CMD (run-parts --report /etc/cron.hourly)
+Aug 26 10:01:10 aide[7123]: AIDE detected changes to system binaries. Rule: 'SysBin'.
+Aug 26 10:01:11 aide[7123]:   changed: /bin/ps
+Aug 26 10:01:11 aide[7123]:   changed: /usr/bin/top
+Aug 26 10:01:12 aide[7123]:   changed: /bin/netstat
+Aug 26 10:01:35 aide[7123]: AIDE detected changes to log","TOKEN_TIME systemd[TOKEN_PID]: Starting daily clean up activities...
+TOKEN_TIME web-app[TOKEN_PID]: GET /api/v1/health status=TOKEN_NUM OK
+TOKEN_TIME CRON[TOKEN_PID]: (root) CMD (run-parts --report /etc/cron.hourly)
+TOKEN_TIME aide[TOKEN_PID]: AIDE detected changes to system binaries. Rule: 'SysBin'.
+TOKEN_TIME aide[TOKEN_PID]:   changed: /bin/ps
+TOKEN_TIME aide[TOKEN_PID]:   changed: /usr/bin/top
+TOKEN_TIME aide[TOKEN_PID]:   changed: /bin/netstat
+TOKEN_TIME aide[TOKEN_PID]: AIDE detected chang","{'sshd': 1, 'cron': 4, 'root': 2, '/etc/': 2}","score far below threshold, logs appear weakly indicative; contains several attack-related tokens"
