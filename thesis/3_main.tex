@@ -387,6 +387,66 @@ Tabelle~\ref{tab:ablation} stellt alle vier Systemvarianten auf Case-Ebene gegen
 
 Die zentralen Befunde lassen sich wie folgt zusammenfassen: Metrics-only erkennt alle positiven Cases, klassifiziert aber alle negativen Cases als positiv (FPR$_{\text{total}}$ = 1{,}0000). Log-only ist die stärkste Variante mit FPR$_{\text{total}}$ = 0{,}2537 bei Recall$_{\text{mali}}$ = 0{,}9375 (AP = 0{,}6548). AND-Fusion degeneriert zu Log-only, da der metrische Trigger bei allen 253~Test-Cases aktiv ist (vgl. Abschnitt~\ref{sec:degeneration}). Soft-Fusion verschlechtert sich gegenüber Log-only in allen Metriken (F1: 0{,}6040 vs. 0{,}6207; FPR: 0{,}2732 vs. 0{,}2537; AP: 0{,}5756 vs. 0{,}6548). Auf diesem Benchmark kommt der dominante Nutzen aus dem Log-Kontext; die untersuchten Fusionsregeln liefern keinen Zusatznutzen gegenüber Log-only.
 
+\subsection{Fehleranalyse auf Case-Ebene}
+\label{sec:error_analysis}
+
+Die folgenden Abschnitte analysieren qualitativ, welche Test-Cases von der Log-only-Komponente fehlklassifiziert werden. Diese Analyse stützt sich ausschließlich auf die bereits vorliegenden Test-Scores und -Trigger aus \texttt{docs/fusion\_cases.csv}; es wurden keine Modelle neu trainiert, keine Thresholds verändert und keine testbasierte Optimierung durchgeführt.
+
+\subsubsection{False-Negative-Cases}
+
+Log-only verfehlt 3 von 48 positiven Test-Cases (Recall$_{\text{mali}}$ = 0{,}9375). Alle drei False Negatives entstammen derselben Gruppe (\texttt{mali\_scenario\_6}) und liegen mit ihren Log-Scores moderat bis deutlich unterhalb des Validierungsthresholds $\tau_{\text{log}} = 0{,}1641$.
+
+\begin{table}[htb]
+  \centering
+  \caption{False-Negative-Cases der Log-only-Komponente (Case-Ebene, Testset)}
+  \label{tab:fn_cases}
+  \begin{tabular}{llll}
+    \hline
+    \textbf{Case} & \textbf{Log-Score} & \textbf{Abstand zu $\tau$} & \textbf{Qualitative Beobachtung} \\
+    \hline
+    \texttt{mali\_6\_10} & 0{,}0719 & $-$0{,}0922 & Moderat unter Threshold; cron-, sshd-, root-Treffer erkannt \\
+    \texttt{mali\_6\_16} & 0{,}0671 & $-$0{,}0970 & Moderat unter Threshold; cron-, sshd-Treffer erkannt \\
+    \texttt{mali\_6\_24} & 0{,}0553 & $-$0{,}1088 & Deutlich unter Threshold; cron-, aide-Meldungen erkannt \\
+    \hline
+  \end{tabular}
+\end{table}
+
+Die Logs der drei Cases enthalten zwar sicherheitsrelevante Tokens (\texttt{cron}, \texttt{sshd}, \texttt{root}, \texttt{/etc/}), diese reichen im gewählten TF-IDF/LogReg-Modell jedoch nicht für eine positive Klassifikationsentscheidung aus. Die Fehleranalyse zeigt, dass \texttt{scenario\_6} ein Angriffsmuster enthält, dessen Log-Signatur vom Modell bei diesem Operating-Point nicht ausreichend erfasst wird. Die Threshold-Sensitivity-Analyse (Abschnitt~\ref{sec:sensitivity}) belegt bereits, dass kein validierungsbasierter Threshold diesen Gap schließt; eine nachträgliche Anpassung auf Basis der Testmenge wäre methodisch nicht zulässig.
+
+\subsubsection{False-Positive-Cases nach Szenario}
+
+Die 52~False Positives von Log-only (FPR$_{\text{total}}$ = 0{,}2537) sind nicht gleichmäßig auf Szenarien verteilt. Tabelle~\ref{tab:fp_scenario} schlüsselt die Fehlklassifikationen für alle anom- und norm-Szenarien im Testset auf.
+
+\begin{table}[htb]
+  \centering
+  \caption{False-Positive-Analyse nach Szenario für Log-only (Testset, 205 negative Cases)}
+  \label{tab:fp_scenario}
+  \resizebox{\linewidth}{!}{%
+  \begin{tabular}{llrrrr}
+    \hline
+    \textbf{Typ} & \textbf{Szenario} & \textbf{Cases} & \textbf{FP} & \textbf{FPR} & \textbf{$\bar{s}_{\text{log}}$} \\
+    \hline
+    anom & scenario\_17 & 18 & 11 & 0{,}6111 & 0{,}3218 \\
+    anom & scenario\_5  & 30 &  6 & 0{,}2000 & 0{,}1405 \\
+    anom & scenario\_13 & 28 &  1 & 0{,}0357 & 0{,}0937 \\
+    norm & scenario\_8  & 30 & 30 & 1{,}0000 & 0{,}5226 \\
+    norm & scenario\_15 & 30 &  2 & 0{,}0667 & 0{,}0861 \\
+    norm & scenario\_6  & 24 &  1 & 0{,}0417 & 0{,}0717 \\
+    norm & scenario\_4  & 45 &  1 & 0{,}0222 & 0{,}0534 \\
+    \hline
+    \multicolumn{6}{l}{\small FPR und $\bar{s}_{\text{log}}$ beziehen sich ausschließlich auf Log-only.} \\
+  \end{tabular}}%
+\end{table}
+
+Die Fehleranalyse zeigt, dass die Fehlklassifikationen szenarioabhängig konzentriert sind. Im anom-Bereich dominiert \texttt{scenario\_17} mit einer FPR von 0{,}6111 (11 von 18 Cases); alle weiteren anom-Szenarien weisen deutlich niedrigere Raten auf. Im norm-Bereich fällt \texttt{scenario\_8} besonders auf: alle 30~norm-Cases des Szenarios werden positiv klassifiziert (FPR~=~1{,}0000, $\bar{s}_{\text{log}}$ = 0{,}5226). Dieses Szenario enthält offenbar Log-Muster, die das TF-IDF-Modell stark mit mali-Klassen assoziiert. Dies erklärt, warum FPR$_{\text{norm}}$ = 0{,}2636 insgesamt etwas höher liegt als FPR$_{\text{anom}}$ = 0{,}2368. Eine kausale Erklärung der szenariospezifischen Log-Muster erfordert eine tiefere manuelle Log-Inspektion und liegt außerhalb des Kernumfangs dieser Arbeit.
+
+\begin{figure}[htb]
+  \centering
+  \includegraphics[width=0.95\textwidth]{../docs/fp_by_scenario_logonly}
+  \caption{False Positives nach Szenario für Log-only, aufgeschlüsselt nach anom (links) und norm (rechts). Die Annotation zeigt die szenariospezifische FPR; rote Balken markieren Szenarien mit FPR~=~1{,}0.}
+  \label{fig:fp_scenario}
+\end{figure}
+
 \subsection{AND-Gate-Degeneration}
 \label{sec:degeneration}
 

@@ -117,6 +117,19 @@ Mehrere Einschränkungen begrenzen die Generalisierbarkeit der Befunde.
 0{,}9375 liegt knapp unter der angestrebten Schwelle von 0{,}95; drei
 positive Cases bleiben undetektiert. Dies ist eine zentrale Einschränkung
 des Ansatzes und kein Threshold-Problem, wie die Sensitivity-Analyse zeigt.
+Eine nachträgliche Fehleranalyse (vgl. Abschnitt~\ref{sec:error_analysis})
+zeigt, dass alle drei False Negatives aus demselben Szenario
+(\texttt{scenario\_6}) stammen und mit Log-Scores deutlich unter dem
+Validierungsthreshold liegen~--- ein Hinweis auf ein szenariospezifisches
+Angriffsmuster, das vom TF-IDF-Modell nicht ausreichend erfasst wird.
+
+\textbf{Szenarioabhängige Konzentration der False Positives.} Die Fehleranalyse
+zeigt, dass die False Positives von Log-only nicht gleichmäßig auf Szenarien
+verteilt sind. Im anom-Bereich konzentrieren sich 11 von 18 Fehlklassifikationen
+auf \texttt{scenario\_17} (FPR = 0{,}6111). Im norm-Bereich weist
+\texttt{scenario\_8} eine FPR von 1{,}0000 auf~--- alle 30 norm-Cases dieses
+Szenarios werden positiv klassifiziert. Eine kausale Erklärung erfordert eine
+tiefere semantische Log-Inspektion und bleibt zukünftiger Arbeit vorbehalten.
 
 \textbf{Geringe Diskriminationskraft der Metrik-Komponente.} Die 25~aggregierten
 Case-Level-Features der fünf universellen Metriken reichen nicht aus, um

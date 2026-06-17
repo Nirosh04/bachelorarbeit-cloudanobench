@@ -417,6 +417,53 @@ Die folgenden Stellen müssen bei der Thesis-Überarbeitung angepasst werden.
 
 ---
 
+## 10. Error Analysis (Notebook 05)
+
+> Diagnostische Analyse der bestehenden Test-Ergebnisse.
+> Keine Modelle neu trainiert, keine Thresholds verändert, keine Hauptmetriken geändert.
+> Artefakte: `docs/false_negative_cases.csv`, `docs/false_positive_by_scenario.csv` u.a.
+
+### 10.1 False-Negative-Cases (Log-only)
+
+| case_id | scenario_id | log_score | log_threshold | margin |
+|---|---|---|---|---|
+| mali_6_10.csv | scenario_6 | 0.071899 | 0.164056 | −0.092157 |
+| mali_6_16.csv | scenario_6 | 0.067102 | 0.164056 | −0.096954 |
+| mali_6_24.csv | scenario_6 | 0.055297 | 0.164056 | −0.108759 |
+
+- Alle 3 FN stammen aus **scenario_6** (Gruppe `mali_scenario_6`).
+- Scores liegen moderat bis deutlich unter dem Validierungsthreshold.
+- Logs enthalten erkennbare Attack-Tokens (cron, sshd, root, /etc/), reichen aber nicht für Positive-Entscheidung.
+- Threshold-Sensitivity-Analyse belegt bereits: kein validierungsbasierter Threshold schließt diesen Gap.
+
+### 10.2 False-Positive-Cases nach Szenario (Log-only)
+
+Aggregiert: FPR_anom = 0.2368 (18/76) · FPR_norm = 0.2636 (34/129)
+
+**Top anom-Szenarien:**
+
+| scenario_id | n_cases | FP | FPR | mean_score |
+|---|---|---|---|---|
+| scenario_17 | 18 | 11 | 0.6111 | 0.3218 |
+| scenario_5  | 30 |  6 | 0.2000 | 0.1405 |
+| scenario_13 | 28 |  1 | 0.0357 | 0.0937 |
+
+**Top norm-Szenarien:**
+
+| scenario_id | n_cases | FP | FPR | mean_score |
+|---|---|---|---|---|
+| scenario_8  | 30 | 30 | 1.0000 | 0.5226 |
+| scenario_15 | 30 |  2 | 0.0667 | 0.0861 |
+| scenario_6  | 24 |  1 | 0.0417 | 0.0717 |
+| scenario_4  | 45 |  1 | 0.0222 | 0.0534 |
+
+- **scenario_17** dominiert anom-FP.
+- **scenario_8** dominiert norm-FP mit FPR = 1.0 (alle 30 norm-Cases dieses Szenarios sind FP).
+- FP-Verteilung ist szenarioabhängig konzentriert, nicht gleichmäßig.
+- Die Hauptmetriken aus `final_results_table.csv` bleiben unverändert.
+
+---
+
 ## Einfrieren-Protokoll Stand C
 
 Die folgenden Zahlen sind als finale Stand-C-Evaluationswerte eingefroren:
