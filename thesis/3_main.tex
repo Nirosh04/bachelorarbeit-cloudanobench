@@ -480,7 +480,7 @@ Diese Degeneration ist kein Implementierungsfehler, sondern ein direktes Ergebni
 
 \subsection{Qualitätssicherung und Reproduzierbarkeit}
 
-Die Kernlogiken der Pipeline werden durch 43~Unit-Tests abgesichert (\texttt{test\_pipeline.py} im Verzeichnis \texttt{tests/}, pytest-Framework). Die Tests sind in neun Klassen gegliedert:
+Die Kernlogiken der Pipeline werden durch 52~Unit-Tests in 12~Klassen abgesichert (\texttt{test\_pipeline.py} im Verzeichnis \texttt{tests/}, pytest-Framework):
 
 \begin{enumerate}
   \item \textbf{Canonical Matrix / Preprocessing} (\texttt{TestBuildCanonicalMatrix}, 4~Tests): Prüft die korrekte Behandlung fehlender Spalten, die leakage-sichere Imputation mit Trainings-Medianen, die vollständige NaN-Bereinigung nach Imputation sowie die Koerzion von quotenbehafteten Zeichenketten.
@@ -500,9 +500,15 @@ Die Kernlogiken der Pipeline werden durch 43~Unit-Tests abgesichert (\texttt{tes
   \item \textbf{Log-Normalisierung und Scores} (\texttt{TestLogNormalizationAndScores}, 6~Tests): Prüft, dass die Normalisierungsfunktion IPs, Zeitstempel, PIDs und isolierte Zahlen ersetzt, sicherheitsrelevante Terme der vordefinierten Keyword-Liste erhält, Case-Level-Scores korrekt vorliegen und das TF-IDF-Vokabular ausschließlich auf Trainingsdaten gefittet wird.
 
   \item \textbf{Case-Level Fusion} (\texttt{TestCaseLevelFusion}, 7~Tests): Verifiziert, dass die Fusion ausschließlich Case-Level-Scores verwendet, eine Zeile pro Test-Case vorliegt, der Soft-Fusion-Threshold aus Validation stammt und die FPR-Aufschlüsselung nach Datensatztyp konsistent ist.
+
+  \item \textbf{False-Negative-Analyse} (\texttt{TestFalseNegativeCases}, 6~Tests): Prüft, dass genau 3~FN-Cases vorliegen, alle dem Typ mali entstammen, ihre Log-Scores unterhalb des Validierungsthresholds liegen und die Margins korrekt berechnet sind.
+
+  \item \textbf{False-Positive-Szenario-Analyse} (\texttt{TestFalsePositiveByScenario}, 7~Tests): Verifiziert die szenariospezifische FP-Aggregation, die Konsistenz der FPR-Berechnung und die korrekte Identifikation der Top-Szenarien (\texttt{norm/scenario\_8}, \texttt{anom/scenario\_17}).
+
+  \item \textbf{Fehleranalyse ändert keine Hauptergebnisse} (\texttt{TestErrorAnalysisDoesNotChangeFinalResults}, 2~Tests): Stellt sicher, dass die diagnostische Fehleranalyse keine Modelle neu trainiert, keine Thresholds verändert und keine finalen Hauptmetriken beeinflusst.
 \end{enumerate}
 
-Vollständige Reproduzierbarkeit wird durch \texttt{random\_state=42} in allen Splits und im XGBoost-Training sichergestellt. Die Datei \texttt{docs/fusion\_cases.csv} enthält alle 253~Test-Cases mit ihren Zwischen-Scores (\texttt{metric\_score}, \texttt{log\_score}, \texttt{metric\_trigger}, \texttt{log\_trigger}, \texttt{and\_trigger}, \texttt{score\_fusion} und \texttt{soft\_fusion\_trigger}) als nachvollziehbarer Audit-Trail.
+Vollständige Reproduzierbarkeit wird durch fixierte Zufallsseeds sichergestellt: Der finale Testsplit verwendet \texttt{random\_state=42}; der interne Validierungsanteil wird ohne Zugriff auf das Testset über Seed~0 aus einer vordefinierten Kandidatenliste gewählt, sodass ausreichend positive Validation-Cases enthalten sind. Das XGBoost-Training verwendet ebenfalls \texttt{random\_state=42}. Die Datei \texttt{docs/fusion\_cases.csv} enthält alle 253~Test-Cases mit ihren Zwischen-Scores (\texttt{metric\_score}, \texttt{log\_score}, \texttt{metric\_trigger}, \texttt{log\_trigger}, \texttt{and\_trigger}, \texttt{score\_fusion} und \texttt{soft\_fusion\_trigger}) als nachvollziehbarer Audit-Trail.
 
 % ---------------------------------------------------------------------------
 \section{Diskussion und Limitationen}
@@ -556,6 +562,6 @@ Mehrere methodische Einschränkungen begrenzen die Generalisierbarkeit der Befun
 
 Konzeptuell ließe sich die Pipeline als verteilbare Abfolge von Filter- und Verifikationsschritten auffassen, etwa in Form einer Map/Reduce-artigen Aufteilung: Die metrische Vorab-Filterung (Phase~2) lässt sich als parallele Map-Operation auf Case-Ebene interpretieren, die log-basierte Verifikation (Phase~3) als fallweise Klassifikation auf dem normalisierten Log-Text.
 
-Es ist jedoch ausdrücklich festzuhalten, dass diese Skalierbarkeitsbetrachtung konzeptueller Natur ist. Eine verteilte Implementierung wurde im Rahmen dieser Arbeit weder realisiert noch gemessen. Die berichteten Latenzzeiten (Phase~2: 54{,}7\,ms, Phase~3: 2{,}4\,ms, gesamt sequenziell: 57{,}1\,ms) beziehen sich auf die sequenzielle Ausführung des Fusion-Notebooks auf einem einzelnen Rechner; eine detaillierte Hardware-Spezifikation liegt nicht vor. Die in den Einzelnotizbüchern gemessenen Werte (Phase~2: 52{,}1\,ms, Phase~3: 0{,}6\,ms) können aufgrund abweichender Ausführungskontexte und Laufzeitumgebungen leicht davon abweichen; alle Latenzangaben sind daher als indikative Messungen zu verstehen.
+Es ist jedoch ausdrücklich festzuhalten, dass diese Skalierbarkeitsbetrachtung konzeptueller Natur ist. Eine verteilte Implementierung wurde im Rahmen dieser Arbeit weder realisiert noch gemessen. Die gemessenen Laufzeiten der einzelnen Notebook-Phasen sind als indikative Einzelmessungen zu verstehen und hängen von Ausführungskontext, Hardware und Notebook-Umgebung ab; sie werden daher nicht als belastbarer Benchmark herangezogen. Für die Bewertung dieser Arbeit entscheidend ist allein die konzeptuelle Zerlegung der Pipeline in getrennte, grundsätzlich parallelisierbare Schritte.
 
 Eine Einbettung der Pipeline in Data-Intelligence-Plattformen wie Databricks oder Snowflake sowie ein automatisiertes Modell-Lifecycle-Management~--- etwa über MLflow zur Überwachung von Model~Drift in dynami\-schen Cloud-Um\-gebungen~--- wären naheliegende Erweiterungen für eine produktionsnahe Umsetzung. Diese Aspekte wurden in der vorliegenden Arbeit weder implementiert noch empirisch evaluiert und liegen außerhalb des Rahmens dieser Benchmark-Studie. Die Skalierbarkeitsbetrachtung bleibt daher auf die konzeptuelle Zerlegung der Pipeline in verteilbare Filter- und Verifikationsschritte beschränkt.

@@ -92,7 +92,10 @@ Die vorliegende Arbeit leistet die folgenden konkreten Beiträge:
     in Notebooks dokumentierte, reproduzierbare Pipeline entwickelt, die alle
     Phasen~--- Datenaufbereitung, Case-Level-Feature-Engineering, Modelltraining,
     Fusion und Evaluation~--- auf CloudAnoBench umsetzt. Alle Ergebnisse sind durch
-    43~Unit-Tests und \texttt{random\_state=42} reproduzierbar und nachvollziehbar.
+    52~Unit-Tests in 12~Testklassen reproduzierbar und nachvollziehbar. Der finale
+    Testsplit wird mit \texttt{random\_state=42} fixiert; der interne Validierungsanteil
+    wird ohne Zugriff auf das Testset über einen festen Seed aus einer vordefinierten
+    Kandidatenliste gewählt.
 
   \item \textbf{Case-Level Metrik-Baseline mit XGBoost auf aggregierten Features.}
     Es wird eine metrische Baseline mit XGBoost~\cite{chen2016xgboost} entwickelt,

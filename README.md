@@ -7,8 +7,8 @@ Diese Arbeit entwickelt und evaluiert eine zweistufige hybride Pipeline zur Redu
 ## Repository-Struktur
 
 ```
-notebooks/          Jupyter-Notebooks (Phase 1–4, in Reihenfolge ausführen)
-tests/              pytest-Suite (13 Unit-Tests)
+notebooks/          Jupyter-Notebooks (Phase 1–5, in Reihenfolge ausführen)
+tests/              pytest-Suite (52 Unit-Tests, 12 Testklassen)
 docs/               Abbildungen und Audit-Artefakt (fusion_cases.csv)
 thesis/             LaTeX-Quellen und kompilierte PDF
 data/               Datensatzverzeichnis (nicht im Repo enthalten, s. u.)
@@ -39,6 +39,8 @@ Die Notebooks müssen in dieser Reihenfolge ausgeführt werden:
 02_metric_baseline.ipynb    – XGBoost-Metrik-Baseline (Phase 2)
 03_log_component.ipynb      – TF-IDF + logistische Regression (Phase 3)
 04_fusion.ipynb             – AND-Gate / Soft-Fusion / Ablation (Phase 4)
+05_error_analysis.ipynb     – Fehleranalyse: False Negatives, False Positives nach Szenario,
+                              malicious-Test-Szenario-Recall und Reproduzierbarkeitschecks
 ```
 
 Jedes Notebook setzt die Ausgaben des vorherigen voraus (`data/processed/` und `docs/`).
