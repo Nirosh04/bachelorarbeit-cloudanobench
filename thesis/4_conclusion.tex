@@ -7,6 +7,7 @@
 \subsection{Zusammenfassung}
 % ---------------------------------------------------------------------------
 
+\begin{sloppypar}
 Diese Arbeit hat auf dem synthetischen Benchmark CloudAnoBench untersucht,
 inwiefern Log-Kontext die False-Positive-Rate einer metrics-basierten
 Cloud-Anomalieerkennung reduzieren kann. Dazu wurde eine reproduzierbare
@@ -20,6 +21,7 @@ Gruppenüberlappung; Threshold-Wahl und Early Stopping wurden ausschließlich
 auf dem Validierungsset vorgenommen, das Testset diente nur der finalen
 Evaluation. Alle Ergebnisse sind durch fixierte Zufallsseeds (Testsplit: \texttt{random\_state=42}) und
 52~Unit-Tests in 12~Testklassen reproduzierbar.
+\end{sloppypar}
 
 % ---------------------------------------------------------------------------
 \subsection{Zentrale Ergebnisse}
@@ -34,11 +36,13 @@ Die Ablation auf dem Testset (253~Cases, davon 48~mali, 76~anom,
 Die 25~Case-Level-Aggregate der fünf universellen Metriken liefern auf
 diesem Benchmark keine Trennkraft zwischen mali- und anom-/norm-Cases.
 
+\begin{sloppypar}
 \textbf{Log-only} ist die stärkste Variante: FPR$_{\text{total}}$~=~0{,}2537
 (FPR$_{\text{anom}}$~=~0{,}2368, FPR$_{\text{norm}}$~=~0{,}2636) bei
 Recall$_{\text{mali}}$~=~0{,}9375 und AP~=~0{,}6548. Damit werden 45~von~48
 positiven Cases erkannt; 3~Cases bleiben undetektiert
 (False Negatives).
+\end{sloppypar}
 
 \textbf{AND-Fusion} ist funktional identisch zu Log-only: Der metrische
 Trigger ist bei allen 253~Test-Cases aktiv (metric\_trigger~=~253/253~=~100~\%),
@@ -83,6 +87,7 @@ Ob die Ergebnisse auf andere Benchmark-Datensätze oder reale Infrastrukturen
 \subsection{Methodische Bedeutung}
 % ---------------------------------------------------------------------------
 
+\begin{sloppypar}
 Mehrere methodische Entscheidungen haben die Validität der Evaluation
 wesentlich bestimmt.
 
@@ -108,11 +113,13 @@ Die \textbf{validierungsbasierte Threshold-Wahl} ohne testbasierte Anpassung
 verhindert Informationsleck aus dem Testset und macht die Evaluation
 unabhängig von Post-hoc-Optimierungen~--- auch wenn dies den knapp
 verfehlten Test-Recall bedingt.
+\end{sloppypar}
 
 % ---------------------------------------------------------------------------
 \subsection{Limitationen}
 % ---------------------------------------------------------------------------
 
+\begin{sloppypar}
 Mehrere Einschränkungen begrenzen die Generalisierbarkeit der Befunde.
 
 \textbf{Verfehlte Recall-Zielschwelle.} Der Test-Recall$_{\text{mali}}$ von
@@ -161,11 +168,13 @@ Log-Formaten übertragbar sind, ist nicht untersucht.
 \textbf{Keine Sequenzmodelle oder semantische Log-Encoder.} TF-IDF und
 logistische Regression sind eine interpretierbare, aber begrenzte Baseline;
 strukturierte Log-Parser oder tiefe Sprachmodelle wurden nicht untersucht.
+\end{sloppypar}
 
 % ---------------------------------------------------------------------------
 \subsection{Ausblick}
 % ---------------------------------------------------------------------------
 
+\begin{sloppypar}
 Aus den Befunden dieser Arbeit ergeben sich mehrere konkrete Ansatzpunkte
 für zukünftige Arbeiten:
 
@@ -212,3 +221,4 @@ vielmehr die Notwendigkeit, Log-Kontext und Evaluationsgranularität in der
 Cloud-Anomaly-Detection sorgfältig zu berücksichtigen~--- und methodisch
 sauber zwischen dem Beitrag einzelner Komponenten und dem Beitrag ihrer
 Kombination zu unterscheiden.
+\end{sloppypar}

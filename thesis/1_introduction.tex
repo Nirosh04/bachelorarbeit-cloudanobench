@@ -7,12 +7,14 @@
 \subsection{Motivation}
 % ---------------------------------------------------------------------------
 
+\begin{sloppypar}
 Automatisierte Anomalie-Erkennung ist ein zentrales Werkzeug im Betrieb großer
 Cloud-Infrastrukturen. Monitoring-Systeme werten kontinuierlich Systemmetriken aus
 und lösen bei auffälligen Abweichungen Alerts aus. In der Praxis führt dieser Ansatz
 jedoch zu einem hohen Aufkommen an Fehlalarmen (\emph{False Positives}):
 Betriebsschwankungen, reguläre Lastspitzen oder geplante Batch-Jobs erzeugen
 Metrikanomaliemuster, die denen echter Angriffe oder Systemfehler ähneln, ohne es zu sein.
+\end{sloppypar}
 
 Dieses Phänomen ist in der Literatur als \emph{Alert Fatigue} bekannt und stellt ein
 anerkanntes operatives Problem im Sicherheitsbetrieb dar. Es beeinträchtigt die
@@ -62,12 +64,14 @@ Ansatzes~--- einschließlich unerwarteter Befunde.
 
 Die zentrale Forschungsfrage lautet:
 
+\begin{sloppypar}
 \begin{quote}
   \emph{Kann eine zweistufige hybride Pipeline~--- bestehend aus einem metrischen
   Anomalie-Detektor und einer log-basierten Nachfilterung~--- die
   False-Positive-Rate auf dem CloudAnoBench-Datensatz deutlich senken, ohne die
   Recall-Rate unter 0{,}95 zu drücken?}
 \end{quote}
+\end{sloppypar}
 
 Die Arbeit untersucht diese Frage durch einen kontrollierten Ablations-Aufbau, der
 eine rein metrische Baseline, eine log-basierte Komponente sowie zwei
@@ -127,6 +131,7 @@ Die vorliegende Arbeit leistet die folgenden konkreten Beiträge:
 \subsection{Aufbau der Arbeit}
 % ---------------------------------------------------------------------------
 
+\begin{sloppypar}
 Abschnitt~2 legt die konzeptionellen und methodischen Grundlagen der Pipeline dar.
 Behandelt werden Cloud-Anoma\-lie\-erkennung, unbalancierte Klassifikation und
 Precision-Recall-Metriken, XGBoost, TF-IDF, Data Leakage und gruppenbasierte
@@ -137,6 +142,7 @@ metrische Baseline, log-basierte Verifikation sowie hybride Fusion und Ablation.
 Die Ergebnisse werden durch Tabellen und Abbildungen dokumentiert; unerwartete
 Befunde~--- insbesondere die AND-Gate-Degeneration~--- werden als eigenständige
 Abschnitte behandelt.
+\end{sloppypar}
 
 Abschnitt~4 diskutiert die Ergebnisse im Hinblick auf die Forschungsfrage,
 bewertet die Rolle der einzelnen Komponenten, benennt die methodischen Limitationen

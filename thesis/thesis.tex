@@ -18,6 +18,7 @@
 \documentclass[serif,article,noparskip,de]{agse-thesis}
 \usepackage{amsmath}
 \usepackage{csquotes}
+\usepackage{microtype}
 
 % Global parameters, replace with actual values.
 \newcommand{\thesisTitle}{Reduzierung von False Positives in der Cloud-Sicherheit durch hybride Analyse von Metriken und Log-Kontext: Eine skalierbare Architektur-Studie auf CloudAnoBench}
@@ -34,6 +35,10 @@
 
 \begin{document}
 
+% Prevent twoside blank pages – article class uses twoside, but digital
+% submission does not require chapters to start on a recto page.
+\let\cleardoublepage\clearpage
+
 \coverpage[
     student/id=5585800,
     student/mail=niroh04@zedat.fu-berlin.de,
@@ -45,7 +50,7 @@
    %thesis/examiner/2={},  % kein Zweitprüfer angegeben
     thesis/date=\today,                    % optional, default: \today
    %title/size=\LARGE,      % set this value to overwrite automatic font size
-   %abstract/separate       % toggle this to move the abstract to its own page
+    abstract/separate,      % abstract on its own page
 ]
 { % Abstract:
     \noindent
@@ -79,11 +84,11 @@
 
 \include{declaration}
 
-\cleardoublepage
+\clearpage
 
 \tableofcontents
 
-\cleardoublepage
+\clearpage
 
 \pagestyle{fancy}
 

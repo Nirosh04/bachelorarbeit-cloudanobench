@@ -104,6 +104,7 @@ die Fokussierung auf FPR und AP in der Evaluation.
 \subsection{XGBoost für tabellarische Metrikdaten}
 % ---------------------------------------------------------------------------
 
+\begin{sloppypar}
 Als metrischer Basis-Detektor wird in dieser Arbeit XGBoost~\cite{chen2016xgboost}
 eingesetzt. XGBoost implementiert Gradient Tree Boosting und approximiert den
 Split-Finding-Algorithmus durch eine histogrammbasierte Methode
@@ -115,6 +116,7 @@ Verfahren dar.
 Relevante Eigenschaften für diese Arbeit sind der Parameter
 \texttt{scale\_pos\_weight} zur Gewichtung der Minderheitsklasse im unbalancierten
 Setting sowie die Möglichkeit, AUCPR direkt als Optimierungsmetrik zu verwenden.
+\end{sloppypar}
 
 XGBoost wird hier nicht als grundsätzlich überlegenes Verfahren positioniert, sondern
 als solide, reproduzierbare Baseline für tabellarische Klassifikation. Es ist nicht
@@ -125,6 +127,7 @@ Leistungsgrenze die Notwendigkeit einer ergänzenden Log-Komponente motivieren.
 \subsection{TF-IDF und logistische Regression für Logdaten}
 % ---------------------------------------------------------------------------
 
+\begin{sloppypar}
 Die log-basierte Komponente dieser Arbeit nutzt eine Kombination aus
 \emph{TF-IDF}-Vektori\-sie\-rung und logistischer Regression. TF-IDF (\emph{Term
 Frequency~-- Inverse Document Frequency}) gewichtet Terme proportional zu ihrer
@@ -132,6 +135,7 @@ Häufigkeit im Dokument, normiert jedoch durch ihre Häufigkeit über alle Dokum
 Häufige, wenig diskriminierende Terme~--- in Log-Dateien etwa routinemäßige
 Statusmeldungen~--- erhalten dadurch geringere Gewichte; seltene, charakteristische
 Terme werden hervorgehoben.
+\end{sloppypar}
 
 Auf der TF-IDF-Matrix wird eine logistische Regression trainiert. Lineare Modelle
 auf sparse hochdimensionalen Textrepräsentationen sind für diese Problemklasse
@@ -188,6 +192,7 @@ systematisieren verschiedene Fusionsregeln~--- darunter Produkt-Regel, Summen-Re
 und Mehrheitsentscheid~--- und zeigen, unter welchen Voraussetzungen sie
 asymptotisch äquivalent sind.
 
+\begin{sloppypar}
 In dieser Arbeit wird die Fusionsentscheidung direkt auf Case-Ebene getroffen.
 Beide Komponenten liefern pro Case~$c$ einen Wahrscheinlichkeitswert:
 $\hat{p}_{\text{metric}}(c)$ aus dem metrischen XGBoost-Klassifikator, der auf
@@ -196,6 +201,7 @@ $\hat{p}_{\text{metric}}(c)$ aus dem metrischen XGBoost-Klassifikator, der auf
 Trend), sowie $\hat{p}_{\text{log}}(c)$ aus der log-basierten logistischen
 Regression auf dem normalisierten TF-IDF-Raum. Beide Komponenten arbeiten direkt
 auf Case-Ebene; ein zwischengeschalteter Row-Level-Aggregationsschritt entfällt.
+\end{sloppypar}
 
 Zwei Fusionsstrategien werden untersucht. Das \textbf{AND-Gate} stellt eine
 konservative Strategie dar: Ein Alert wird nur ausgegeben, wenn \emph{beide}
