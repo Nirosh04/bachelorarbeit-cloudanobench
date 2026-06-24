@@ -49,7 +49,7 @@ Jedes Notebook setzt die Ausgaben des vorherigen voraus (`data/processed/` und `
 python -m pytest tests/ -v
 ```
 
-Erwartet: 13 Tests, alle grün.
+Erwartet: 52 Tests, alle grün.
 
 ## Thesis kompilieren
 
