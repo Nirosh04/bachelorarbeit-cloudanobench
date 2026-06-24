@@ -44,7 +44,8 @@ positiven Cases erkannt; 3~Cases bleiben undetektiert
 Trigger ist bei allen 253~Test-Cases aktiv (metric\_trigger~=~253/253~=~100~\%),
 sodass das AND-Gate vollständig degeneriert.
 
-\textbf{Soft-Fusion} verschlechtert sich gegenüber Log-only in allen Metriken:
+\textbf{Soft-Fusion} erzielt denselben Recall wie Log-only, verschlechtert sich
+jedoch in Precision, F1, FPR und AP:
 F1~=~0{,}6040 (vs.~0{,}6207), FPR$_{\text{total}}$~=~0{,}2732
 (vs.~0{,}2537), AP~=~0{,}5756 (vs.~0{,}6548). Die Multiplikation mit dem
 schwachen metrischen Score nivelliert die Diskriminanz des Log-Scores.
@@ -67,10 +68,11 @@ Log-only allein, wird durch die Ergebnisse nicht bestätigt: Weder AND-Fusion
 noch Soft-Fusion liefern einen Zusatznutzen.
 
 Der Test-Recall$_{\text{mali}}$ von 0{,}9375 (45/48) verfehlt die
-angestrebte Schwelle von 0{,}95 knapp. Die Threshold-Sensitivity-Analyse
-belegt, dass kein validierungsbasierter Threshold diesen Gap schließt~---
-die drei nicht-detektierten Fälle sind strukturell unterhalb jedes
-validierten Schwellenwerts. Dieser Befund ist methodisch transparent: Eine
+angestrebte Schwelle von 0{,}95 knapp. Bei dem auf Validation ausgewählten
+Threshold bleiben die drei False-Negative-Cases unterhalb der Entscheidungs\-grenze.
+Eine niedrigere Schwelle könnte den Recall erhöhen, würde jedoch voraussichtlich
+zusätzliche False Positives erzeugen; dieser Trade-off wird in der
+Threshold-Sensitivity sichtbar. Dieser Befund ist methodisch transparent: Eine
 testbasierte Nachoptimierung wurde bewusst nicht vorgenommen.
 
 Die Befunde gelten für CloudAnoBench unter den gewählten Konfigurationen.
@@ -99,12 +101,12 @@ ist.
 
 Die \textbf{getrennte FPR-Auswertung} für anom und norm zeigt, dass beide
 Negativtypen relevant und ähnlich schwer von mali zu trennen sind
-(FPR$_{\text{anom}}$~=~0{,}2368, FPR$_{\text{norm}}$~=~0{,}2636 für Log-only).
+(Log-only: FPR$_{\text{anom}}$~=~0{,}2368, FPR$_{\text{norm}}$~=~0{,}2636).
 Eine aggregierte FPR allein hätte diese Differenzierung verborgen.
 
 Die \textbf{validierungsbasierte Threshold-Wahl} ohne testbasierte Anpassung
 verhindert Informationsleck aus dem Testset und macht die Evaluation
-unabhängig von post-hoc-Optimierungen~--- auch wenn dies den knapp
+unabhängig von Post-hoc-Optimierungen~--- auch wenn dies den knapp
 verfehlten Test-Recall bedingt.
 
 % ---------------------------------------------------------------------------
@@ -115,13 +117,16 @@ Mehrere Einschränkungen begrenzen die Generalisierbarkeit der Befunde.
 
 \textbf{Verfehlte Recall-Zielschwelle.} Der Test-Recall$_{\text{mali}}$ von
 0{,}9375 liegt knapp unter der angestrebten Schwelle von 0{,}95; drei
-positive Cases bleiben undetektiert. Dies ist eine zentrale Einschränkung
-des Ansatzes und kein Threshold-Problem, wie die Sensitivity-Analyse zeigt.
-Eine nachträgliche Fehleranalyse (vgl. Abschnitt~\ref{sec:error_analysis})
+positive Cases bleiben undetektiert. Die Fehleranalyse (vgl. Abschnitt~\ref{sec:error_analysis})
 zeigt, dass alle drei False Negatives aus demselben Szenario
-(\texttt{scenario\_6}) stammen und mit Log-Scores deutlich unter dem
-Validierungsthreshold liegen~--- ein Hinweis auf ein szenariospezifisches
-Angriffsmuster, das vom TF-IDF-Modell nicht ausreichend erfasst wird.
+(\texttt{mali/scenario\_6}, \emph{Rootkit / Backdoor}) stammen und mit
+Log-Scores moderat bis deutlich unter dem Validierungsthreshold liegen~---
+ein Hinweis auf ein szenariospezifisches Angriffsmuster, dessen Log-Signatur
+vom TF-IDF-Modell nicht ausreichend erfasst wird. Bei dem auf Validation
+ausgewählten Threshold bleiben diese Cases unterhalb der Entscheidungsgrenze.
+Eine niedrigere Schwelle könnte den Recall erhöhen, würde jedoch voraussichtlich
+zusätzliche False Positives erzeugen; dieser Trade-off wird in der
+Threshold-Sensitivity (vgl. Abschnitt~\ref{sec:sensitivity}) sichtbar.
 
 \textbf{Szenarioabhängige Konzentration der False Positives.} Die Fehleranalyse
 zeigt, dass die False Positives von Log-only nicht gleichmäßig auf Szenarien
@@ -193,11 +198,7 @@ für zukünftige Arbeiten:
     relativiert.
 
   \item[Analyse der False-Negative-Cases.]
-    Die drei nicht-detektierten positiven Cases ($\text{FN}=3$) sind
-    strukturell unterhalb jedes validierten Thresholds. Eine qualitative
-    Analyse~--- etwa hinsichtlich Log-Inhalt, Szenariotyp oder Metrik-Profil~---
-    könnte aufzeigen, ob gemeinsame Muster existieren und gezielt adressiert
-    werden können.
+    Die drei nicht detektierten positiven Cases ($\text{FN}=3$) stammen aus \texttt{mali/scenario\_6} (\emph{Rootkit / Backdoor}). Bei dem auf Validation ausgewählten Threshold liegen diese Cases unterhalb der Entscheidungsgrenze. Eine niedrigere Schwelle könnte den Test-Recall grundsätzlich erhöhen, würde jedoch voraussichtlich zusätzliche False Positives erzeugen; dieser Trade-off wird in der Threshold-Sensitivity sichtbar. Die ergänzende Szenarioanalyse zeigt zudem, dass \texttt{mali/scenario\_6} mit 21 von 24 korrekt erkannten Cases (Recall 0{,}8750) insgesamt schwieriger ist, jedoch nicht vollständig verfehlt wird.
 
   \item[Evaluation auf realem Produktions-Traffic.]
     CloudAnoBench verwendet kontrollierte Anomalie-Injektionen. Ob die

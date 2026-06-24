@@ -69,11 +69,11 @@
     Test-Recall von 0{,}9375; getrennt nach Negativtypen ergeben sich
     FPR$_\text{anom}$ = 0{,}2368 und FPR$_\text{norm}$ = 0{,}2636. Die AND-Fusion
     ist funktional identisch zur Log-only-Variante, da der metrische Trigger bei allen
-    253~Test-Cases aktiv ist; die Soft-Fusion verschlechtert sich gegenüber Log-only
-    leicht. Damit trägt auf diesem Benchmark primär der Log-Kontext zur
+    253~Test-Cases aktiv ist; die Soft-Fusion erzielt denselben Recall wie Log-only,
+    verschlechtert sich jedoch in Precision, F1, FPR und AP. Damit trägt auf diesem Benchmark primär der Log-Kontext zur
     False-Positive-Reduktion bei, während die untersuchten Metrik-Aggregate und
     Fusionsregeln keinen zusätzlichen Nutzen liefern. Die angestrebte Recall-Schwelle
-    von 0{,}95 wird im finalen Testsplit knapp verfehlt und wird als zentrale
+    von 0{,}95 wird im finalen Testsplit knapp verfehlt; dieser Befund wird als zentrale
     Limitation diskutiert.
 }
 

@@ -421,7 +421,23 @@ Die folgenden Stellen müssen bei der Thesis-Überarbeitung angepasst werden.
 
 > Diagnostische Analyse der bestehenden Test-Ergebnisse.
 > Keine Modelle neu trainiert, keine Thresholds verändert, keine Hauptmetriken geändert.
-> Artefakte: `docs/false_negative_cases.csv`, `docs/false_positive_by_scenario.csv` u.a.
+> Artefakte: `docs/false_negative_cases.csv`, `docs/false_positive_by_scenario.csv`,
+> `docs/mali_test_scenario_recall.csv` u.a.
+
+### Bekannte Szenarionamen (von Hamed bestätigt)
+
+| Szenario-ID | Name |
+|---|---|
+| `mali/scenario_6` | **Rootkit / Backdoor** |
+| `norm/scenario_8` | **Search Engine Aggressive Crawl** |
+
+Alle anderen Szenarionamen sind aus vorhandenen Metadaten nicht sicher ableitbar und werden nicht erfunden.
+
+### Reproduzierbarkeitscheck (aus Notebook 05)
+
+- `fusion_cases.csv` enthält **253 eindeutige case_ids** — `case_id.is_unique = True`.
+- `fusion_ids == test_ids` (aus `split_assignments.csv`, split=test): **exakt übereinstimmend**.
+- Assertion in Notebook 05 bestätigt: fusion_cases.csv entspricht exakt dem Testsplit.
 
 ### 10.1 False-Negative-Cases (Log-only)
 
@@ -431,10 +447,24 @@ Die folgenden Stellen müssen bei der Thesis-Überarbeitung angepasst werden.
 | mali_6_16.csv | scenario_6 | 0.067102 | 0.164056 | −0.096954 |
 | mali_6_24.csv | scenario_6 | 0.055297 | 0.164056 | −0.108759 |
 
-- Alle 3 FN stammen aus **scenario_6** (Gruppe `mali_scenario_6`).
+- Alle 3 FN stammen aus **`mali/scenario_6` (Rootkit / Backdoor)**.
 - Scores liegen moderat bis deutlich unter dem Validierungsthreshold.
-- Logs enthalten erkennbare Attack-Tokens (cron, sshd, root, /etc/), reichen aber nicht für Positive-Entscheidung.
-- Threshold-Sensitivity-Analyse belegt bereits: kein validierungsbasierter Threshold schließt diesen Gap.
+- Logs enthalten Treffer aus der vordefinierten Security-Keyword-Liste (cron, sshd, root, /etc/);
+  da diese Begriffe generisch auftreten können, reichen sie nicht für eine Positive-Entscheidung.
+- Bei dem auf Validation ausgewählten Threshold bleiben diese Cases unterhalb der Entscheidungsgrenze.
+  Eine niedrigere Schwelle könnte den Recall erhöhen, würde jedoch voraussichtlich zusätzliche FP erzeugen.
+
+### 10.1a Malicious Test-Szenario-Recall-Tabelle (aus `docs/mali_test_scenario_recall.csv`)
+
+| scenario_id | scenario_name | n_test_cases | true_positives | false_negatives | recall |
+|---|---|---|---|---|---|
+| mali/scenario_6 | Rootkit / Backdoor | 24 | 21 | 3 | 0.8750 |
+| mali/scenario_7 | (unbekannt)        | 24 | 24 | 0 | 1.0000 |
+| **Gesamt**      |                    | **48** | **45** | **3** | **0.9375** |
+
+- `scenario_6` ist insgesamt schwieriger (Recall 0.875), aber nicht vollständig schwierig:
+  21 von 24 Cases werden korrekt erkannt; nur 3 einzelne Cases liegen unter der Schwelle.
+- `scenario_7` wird vollständig detektiert.
 
 ### 10.2 False-Positive-Cases nach Szenario (Log-only)
 
@@ -444,21 +474,22 @@ Aggregiert: FPR_anom = 0.2368 (18/76) · FPR_norm = 0.2636 (34/129)
 
 | scenario_id | n_cases | FP | FPR | mean_score |
 |---|---|---|---|---|
-| scenario_17 | 18 | 11 | 0.6111 | 0.3218 |
-| scenario_5  | 30 |  6 | 0.2000 | 0.1405 |
-| scenario_13 | 28 |  1 | 0.0357 | 0.0937 |
+| anom/scenario_17 | 18 | 11 | 0.6111 | 0.3218 |
+| anom/scenario_5  | 30 |  6 | 0.2000 | 0.1405 |
+| anom/scenario_13 | 28 |  1 | 0.0357 | 0.0937 |
 
 **Top norm-Szenarien:**
 
-| scenario_id | n_cases | FP | FPR | mean_score |
-|---|---|---|---|---|
-| scenario_8  | 30 | 30 | 1.0000 | 0.5226 |
-| scenario_15 | 30 |  2 | 0.0667 | 0.0861 |
-| scenario_6  | 24 |  1 | 0.0417 | 0.0717 |
-| scenario_4  | 45 |  1 | 0.0222 | 0.0534 |
+| scenario_id | scenario_name | n_cases | FP | FPR | mean_score |
+|---|---|---|---|---|---|
+| norm/scenario_8  | Search Engine Aggressive Crawl | 30 | 30 | 1.0000 | 0.5226 |
+| norm/scenario_15 | (unbekannt)                    | 30 |  2 | 0.0667 | 0.0861 |
+| norm/scenario_6  | (unbekannt)                    | 24 |  1 | 0.0417 | 0.0717 |
+| norm/scenario_4  | (unbekannt)                    | 45 |  1 | 0.0222 | 0.0534 |
 
-- **scenario_17** dominiert anom-FP.
-- **scenario_8** dominiert norm-FP mit FPR = 1.0 (alle 30 norm-Cases dieses Szenarios sind FP).
+- **`anom/scenario_17`** dominiert anom-FP (kein offizieller Name bekannt).
+- **`norm/scenario_8` (Search Engine Aggressive Crawl)** dominiert norm-FP mit FPR = 1.0:
+  Ein aggressiver Crawler erzeugt oberflächlich attackenähnliche Log-Muster, obwohl kein Angriff vorliegt.
 - FP-Verteilung ist szenarioabhängig konzentriert, nicht gleichmäßig.
 - Die Hauptmetriken aus `final_results_table.csv` bleiben unverändert.
 

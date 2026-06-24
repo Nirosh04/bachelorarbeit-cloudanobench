@@ -10,7 +10,7 @@
 
 Grundlage der Untersuchung ist CloudAnoBench~\cite{zou2025cloudanobench}, ein synthetischer Benchmark zur multimodalen Anomalieerkennung in Cloud-Umgebungen. Der Datensatz stellt für jede Beobachtungseinheit sowohl Zeitreihendaten von Systemmetriken als auch zugehörige Log-Dateien bereit und eignet sich damit explizit für eine hybride Analyse, wie sie in dieser Arbeit untersucht wird. Es sei ausdrücklich darauf hingewiesen, dass CloudAnoBench ein neuerer Benchmark ist, der noch nicht als etablierter Goldstandard der Community gilt; die Ergebnisse dieser Arbeit sind daher im Kontext dieses spezifischen Datensatzes zu interpretieren.
 
-Der Datensatz umfasst drei inhaltlich distinkte Typen: \emph{mali} (maliciously anomalous), \emph{anom} (non-malicious anomalous) und \emph{norm} (normal). Die Unterscheidung ist für die binäre Klassifikationsaufgabe relevant, da nur mali-Instanzen als positiv (Label~1) und anom sowie norm als negativ (Label~0) kodiert werden. Anom-Fälle stellen dabei nicht-maliziöse technische Anomalien dar, die von einem Sicherheitsdetektor korrekt als unbedenklich eingestuft werden sollen; eine hohe Verwechselungsrate zwischen mali und anom wäre operativ besonders kostspielig~\cite{zou2025cloudanobench}. Norm-Cases repräsentieren planmäßigen Betrieb, der aufgrund ressourcenintensiver, aber nicht-maliziöser Aktivitäten~--- etwa Backup- oder Batch-Prozesse~--- metrisch auffällig wirken kann. Solche Fälle wurden im Kontext dieser Arbeit als besonders relevante Quelle von Fehlalarmen identifiziert; in der Evaluation werden sie über eine separate $\text{FPR}_{\text{norm}}$ ausgewertet.
+Der Datensatz umfasst drei inhaltlich distinkte Typen: \emph{mali} (maliciously anomalous), \emph{anom} (non-malicious anomalous) und \emph{norm} (normal). Die Unterscheidung ist für die binäre Klassifikationsaufgabe relevant, da nur mali-Instanzen als positiv (Label~1) und anom sowie norm als negativ (Label~0) kodiert werden. Anom-Fälle stellen dabei nicht-maliziöse technische Anomalien dar, die von einem Sicherheitsdetektor korrekt als unbedenklich eingestuft werden sollen; eine hohe Verwechselungsrate zwischen mali und anom wäre operativ besonders kostspielig~\cite{zou2025cloudanobench}. Norm-Cases repräsentieren planmäßigen Betrieb, der aufgrund ressourcenintensiver, aber nicht-maliziöser Aktivitäten~--- etwa Backup- oder Batch-Prozesse~--- metrisch auffällig wirken kann. Norm-Cases sind daher eine besonders relevante Quelle von Fehlalarmen; in der Evaluation werden sie über eine separate $\text{FPR}_{\text{norm}}$ ausgewertet.
 
 \begin{table}[htb]
   \centering
@@ -35,7 +35,7 @@ Tabelle~\ref{tab:datenbasis} fasst die Datenbasis zusammen. Lediglich eine einzi
 
 Die Rohdaten liegen im CSV-Format vor und weisen zwei typische Qualitätsprobleme auf. Erstens enthalten einige Felder residuale Anführungszeichen aus einer überlagerten CSV-Kodierung (Parameter \texttt{quoting=3} beim Einlesen), die durch eine explizite Zeichenkettenbereinigung entfernt werden. Zweitens sind numerische Felder in einigen Dateien als Zeichenketten kodiert und müssen in Fließkommazahlen überführt werden.
 
-Die Median-Imputation fehlender Werte erfolgt in zwei inhaltlich getrennten Kontexten: In Phase~1 wird für die explorative Datenanalyse und die Erstellung der bereinigten Parquet-Artefakte eine Self-Fit-Imputation auf den jeweils vollständig verfügbaren Typ-Daten durchgeführt. Dieser Schritt dient ausschließlich der Datenvorbereitung und Visualisierung; er hat keinen Evaluationsbezug. Für alle evaluationsrelevanten Schritte in Phase~2 und Phase~4 werden die Medianwerte hingegen ausschließlich auf dem Trainingsanteil berechnet, in \texttt{data/processed/mali\_train\_medians.json} gespeichert und danach ohne Neufittung auf die Testdaten angewendet. Diese Trennung schützt vor einem verbreiteten Fehler bei der Vorverarbeitung, der in der Literatur als \emph{data leakage} bezeichnet wird~\cite{kaufman2012leakage}.
+Die Median-Imputation fehlender Werte erfolgt in zwei inhaltlich getrennten Kontexten: In Phase~1 wird für die explorative Datenanalyse und die Erstellung der bereinigten Parquet-Artefakte eine Self-Fit-Imputation auf den jeweils vollständig verfügbaren Typ-Daten durchgeführt. Dieser Schritt dient ausschließlich der Datenvorbereitung und Visualisierung; er hat keinen Evaluationsbezug. Für alle evaluationsrelevanten Schritte in Phase~2 und Phase~4 werden die Medianwerte hingegen ausschließlich auf dem Trainingsanteil berechnet, in \texttt{data/processed/mali\_train\_medians.json} gespeichert und danach ohne Neufittung auf die Testdaten angewendet. Diese Trennung schützt vor einem verbreiteten Fehler bei der Vorverarbeitung, der in der Literatur als \emph{Data Leakage} bezeichnet wird~\cite{kaufman2012leakage}.
 
 Die Wahl des Medians gegenüber dem arithmetischen Mittel ist durch die Verteilung der Metriken motiviert: Systemmetriken wie \texttt{net\_out} zeigen häufig eine rechtsschiefe Verteilung mit einzelnen Ausreißerspitzen, gegen die der Median robust ist~\cite{huber2009robust}.
 
@@ -92,7 +92,7 @@ Das Klassenungleichgewicht im Trainingsset beträgt 5{,}50:1 (negativ zu positiv
 
 Als Baseline-Modell für den metrikbasierten Anomalie-Detektor wird XGBoost~\cite{chen2016xgboost} eingesetzt. XGBoost implementiert Gradient Boosting über Entscheidungsbäume und ist durch die \texttt{hist}-Methode (histogrammbasiertes Split-Finding) auch für größere Datensätze effizient anwendbar. Für tabellarisch strukturierte Daten mit gemischten Skalen stellt XGBoost eine gut validierte Wahl dar.
 
-Als Optimierungsmetrik wird der Wert der Fläche unter der Precision-Recall-Kurve (\emph{AUCPR}) gewählt. Bei stark unbalancierten Klassifikationsproblemen ist AUCPR gegenüber dem ROC-AUC informativer, da Letzterer die Leistung im negativen Regime übergewichtet~\cite{davis2006relationship,saito2015precision}. Das vorliegende Klassenungleichgewicht im Trainingsset von annähernd 5{,}50:1 erfüllt diese Voraussetzung~\cite{hegarcia2009learning}.
+Als Optimierungsmetrik wird der Wert der Fläche unter der Precision-Recall-Kurve (\emph{AUCPR}) gewählt. Bei stark unbalancierten Klassifikationsproblemen ist AUCPR gegenüber dem ROC-AUC informativer, da Letzterer die Leistung im negativen Regime übergewichtet~\cite{davis2006relationship,saito2015precision}. Das vorliegende Klassenungleichgewicht im Trainingsset von annähernd 5{,}50:1 entspricht diesem Szenario~\cite{hegarcia2009learning}.
 
 Das Klassenungleichgewicht wird in der XGBoost-Verlustfunktion über den Hyperparameter \texttt{scale\_pos\_weight} berücksichtigt. Der Wert von~5{,}50 wird ausschließlich aus der Trainingsverteilung berechnet (671 negative vs.\ 122 positive Trainingsfälle). Als Optimierungsmetrik dient AUCPR. Early Stopping ist mit 20 Runden aktiviert; die Überwachungsmetrik wird dabei ausschließlich auf dem Validierungsset berechnet. Der Operating-Threshold wird als höchster Validierungsschwellenwert gewählt, der auf dem Validierungsset eine Recall-Rate von mindestens 0{,}95 erzielt; die so bestimmte Schwelle wird unverändert auf das Testset angewendet.
 
@@ -146,7 +146,7 @@ Um Zeitreiheninformationen auf Case-Ebene nutzbar zu machen, werden die Rohmessr
 \end{table}
 
 Tabelle~\ref{tab:baseline_results} fasst die Ergebnisse zusammen. Der XGBoost-Detektor erkennt auf Case-Ebene alle 48 positiven Test-Cases
-(Recall$_{\text{mali}}$ = 1{,}0000), klassifiziert aber gleichzeitig alle 205 negativen Cases als positiv (FPR$_{\text{total}}$ = 1{,}0000, TN~=~0). Die Metrik-Komponente ist auf diesem Benchmark \emph{nicht selektiv}: Sie kann nicht zwischen mali- und anom-/norm-Cases unterscheiden, weil viele technische Anomalien und Normalszenarien ähnlich hohe Metrik-Aggregate wie Malware-Activities aufweisen. Der niedrige Threshold von~0{,}0256 (bestimmt auf dem Validierungsset) markiert alle Test-Cases als metrisch auffällig.
+(Recall$_{\text{mali}}$ = 1{,}0000), klassifiziert aber gleichzeitig alle 205 negativen Cases als positiv (FPR$_{\text{total}}$ = 1{,}0000, TN~=~0). Die Metrik-Komponente ist auf diesem Benchmark \emph{nicht selektiv}: Sie kann nicht zwischen mali- und anom-/norm-Cases unterscheiden, weil viele technische Anomalien und Normalszenarien ähnlich hohe Metrik-Aggregate wie Malware-Aktivitäten aufweisen. Der niedrige Threshold von~0{,}0256 (bestimmt auf dem Validierungsset) markiert alle Test-Cases als metrisch auffällig.
 
 Abbildung~\ref{fig:pr_baseline} zeigt die zugehörige Precision-Recall-Kurve. Abbildung~\ref{fig:feat_imp} visualisiert die Feature-Importances des trainierten Modells nach dem Gain-Kriterium.
 
@@ -164,7 +164,7 @@ Abbildung~\ref{fig:pr_baseline} zeigt die zugehörige Precision-Recall-Kurve. Ab
   \label{fig:feat_imp}
 \end{figure}
 
-Die Metrik-Baseline ist auf Case-Ebene zwar vollständig sensitiv (Recall$_{\text{mali}}$ = 1{,}0000), aber nicht selektiv (FPR$_{\text{total}}$ = 1{,}0000). Dieser Befund bestätigt die Notwendigkeit der log-basierten Komponente und motiviert die in Abschnitt~\ref{sec:log} beschriebene Erweiterung.
+Die Metrik-Baseline ist auf Case-Ebene zwar vollständig sensitiv (Recall$_{\text{mali}}$ = 1{,}0000), aber nicht selektiv (FPR$_{\text{total}}$ = 1{,}0000). Dieser Befund motiviert die in Abschnitt~\ref{sec:log} beschriebene log-basierte Komponente.
 
 % ---------------------------------------------------------------------------
 \section{Log-basierte Verifikation}
@@ -203,7 +203,7 @@ Bevor die Log-Texte vektorisiert werden, werden synthetische Artefakte durch gen
   \end{tabular}
 \end{table}
 
-Attack-relevante semantische Information bleibt erhalten: Prozessnamen (\texttt{sshd}, \texttt{CRON}, \texttt{wget}, \texttt{curl}, \texttt{bash}), Aktionen (\texttt{Accepted}, \texttt{Failed}, \texttt{CMD}), Pfade, Domains und Protokollbezeichner werden nicht verändert. Die Motivation dieser Normalisierung besteht darin, dass synthetische Artefakte wie Zeitstempel und IP-Adressen in einem Benchmarkdatensatz zufällig variieren und kein semantisches Signal tragen; das TF-IDF-Modell soll stattdessen auf dem inhaltlich relevanten Vokabular trainiert werden.
+Sicherheitsrelevante semantische Information bleibt erhalten: Prozessnamen (\texttt{sshd}, \texttt{CRON}, \texttt{wget}, \texttt{curl}, \texttt{bash}), Aktionen (\texttt{Accepted}, \texttt{Failed}, \texttt{CMD}), Pfade, Domains und Protokollbezeichner werden nicht verändert. Es sei darauf hingewiesen, dass einige dieser Terme~-- etwa \texttt{sshd}, \texttt{cron} oder \texttt{bash}~-- in regulärem Systembetrieb generisch auftreten können; sie sind Teil der vordefinierten Security-Keyword-Liste, nicht per se Angriffshinweise. Die Motivation dieser Normalisierung besteht darin, dass synthetische Artefakte wie Zeitstempel und IP-Adressen in einem Benchmarkdatensatz zufällig variieren und kein semantisches Signal tragen; das TF-IDF-Modell soll stattdessen auf dem inhaltlich relevanten Vokabular trainiert werden.
 
 \subsection{TF-IDF-Vektorisierung}
 
@@ -282,7 +282,7 @@ Der Operating-Threshold der Log-Komponente wird auf dem Validierungsset bestimmt
   \end{tabular}
 \end{table}
 
-Tabelle~\ref{tab:log_results} zeigt die Ergebnisse der Log-Komponente. Gegenüber der Metrik-Baseline (FPR$_{\text{total}}$ = 1{,}0000) sinkt die FPR$_{\text{total}}$ auf 0{,}2537 -- die Log-Komponente ist die einzige Variante mit echter Selektivität. Der Test-Recall$_{\text{mali}}$ beträgt 0{,}9375 (45 von 48 positiven Cases erkannt, 3~FN), womit die angestrebte Schwelle von 0{,}95 knapp verfehlt wird. Getrennt nach Negativtypen ergeben sich FPR$_{\text{anom}}$ = 0{,}2368 und FPR$_{\text{norm}}$ = 0{,}2636. Abbildung~\ref{fig:pr_log} zeigt die zugehörige PR-Kurve; ein direkter AP-Vergleich mit der Metrik-Baseline ist nun auf gleicher Granularität (Case-Ebene, $n=253$) möglich.
+Tabelle~\ref{tab:log_results} zeigt die Ergebnisse der Log-Komponente. Gegenüber der nicht-selektiven Metrik-Baseline (FPR$_{\text{total}}$ = 1{,}0000) sinkt die FPR auf 0{,}2537 -- die Log-Komponente ist die einzige Variante mit echter Selektivität. Der Test-Recall$_{\text{mali}}$ beträgt 0{,}9375 (45 von 48 positiven Cases erkannt, 3~FN), womit die angestrebte Schwelle von 0{,}95 knapp verfehlt wird. Getrennt nach Negativtypen ergeben sich FPR$_{\text{anom}}$ = 0{,}2368 und FPR$_{\text{norm}}$ = 0{,}2636. Abbildung~\ref{fig:pr_log} zeigt die zugehörige PR-Kurve; ein direkter AP-Vergleich mit der Metrik-Baseline ist nun auf gleicher Granularität (Case-Ebene, $n=253$) möglich.
 
 \begin{figure}[htb]
   \centering
@@ -313,7 +313,7 @@ Zur methodischen Absicherung der Threshold-Wahl wurde eine Sensitivity-Analyse f
   \end{tabular}}%
 \end{table}
 
-Tabelle~\ref{tab:sensitivity} zeigt das zentrale Ergebnis: Bei allen vier Recall-Zielen bleibt der Test-Recall konstant bei 0{,}9375. Höhere Validierungsziele führen zu einem niedrigeren Threshold und einer höheren FPR$_{\text{total}}$ (von 0{,}2537 auf 0{,}3512), ohne den Test-Recall zu verbessern. Die drei nicht-detektierten positiven Cases (FN) liegen unterhalb jedes validierungsbasierten Thresholds -- der Recall-Gap ist strukturell, nicht durch eine Threshold-Anpassung behebbar. Diese Limitation wird in Abschnitt~\ref{sec:limit} ausführlich diskutiert.
+Tabelle~\ref{tab:sensitivity} zeigt das zentrale Ergebnis: Bei allen vier Recall-Zielen bleibt der Test-Recall konstant bei 0{,}9375. Höhere Validierungsziele führen zu einem niedrigeren Threshold und einer höheren FPR$_{\text{total}}$ (von 0{,}2537 auf 0{,}3512), ohne den Test-Recall zu verbessern. Bei dem auf Validation ausgewählten Threshold bleiben die drei False-Negative-Cases unterhalb der Entscheidungsgrenze. Eine niedrigere Schwelle könnte den Recall erhöhen, würde jedoch voraussichtlich zusätzliche False Positives erzeugen; dieser Trade-off wird in der Threshold-Sensitivity sichtbar. Diese Limitation wird in Abschnitt~\ref{sec:limit} ausführlich diskutiert.
 
 % ---------------------------------------------------------------------------
 \section{Hybride Fusion und Evaluation}
@@ -385,7 +385,7 @@ Tabelle~\ref{tab:ablation} stellt alle vier Systemvarianten auf Case-Ebene gegen
   \label{fig:fpr_comp}
 \end{figure}
 
-Die zentralen Befunde lassen sich wie folgt zusammenfassen: Metrics-only erkennt alle positiven Cases, klassifiziert aber alle negativen Cases als positiv (FPR$_{\text{total}}$ = 1{,}0000). Log-only ist die stärkste Variante mit FPR$_{\text{total}}$ = 0{,}2537 bei Recall$_{\text{mali}}$ = 0{,}9375 (AP = 0{,}6548). AND-Fusion degeneriert zu Log-only, da der metrische Trigger bei allen 253~Test-Cases aktiv ist (vgl. Abschnitt~\ref{sec:degeneration}). Soft-Fusion verschlechtert sich gegenüber Log-only in allen Metriken (F1: 0{,}6040 vs. 0{,}6207; FPR: 0{,}2732 vs. 0{,}2537; AP: 0{,}5756 vs. 0{,}6548). Auf diesem Benchmark kommt der dominante Nutzen aus dem Log-Kontext; die untersuchten Fusionsregeln liefern keinen Zusatznutzen gegenüber Log-only.
+Die zentralen Befunde lassen sich wie folgt zusammenfassen: Metrics-only erkennt alle positiven Cases, klassifiziert aber alle negativen Cases als positiv (FPR$_{\text{total}}$ = 1{,}0000). Log-only ist die stärkste Variante mit FPR$_{\text{total}}$ = 0{,}2537 bei Recall$_{\text{mali}}$ = 0{,}9375 (AP = 0{,}6548). AND-Fusion degeneriert zu Log-only, da der metrische Trigger bei allen 253~Test-Cases aktiv ist (vgl. Abschnitt~\ref{sec:degeneration}). Soft-Fusion erreicht denselben Recall wie Log-only, verschlechtert sich jedoch in Precision, F1, FPR und AP (F1: 0{,}6040 vs. 0{,}6207; FPR: 0{,}2732 vs. 0{,}2537; AP: 0{,}5756 vs. 0{,}6548). Auf diesem Benchmark liegt der wesentliche Beitrag zur False-Positive-Reduktion beim Log-Kontext; die untersuchten Fusionsregeln liefern gegenüber Log-only keinen Mehrwert.
 
 \subsection{Fehleranalyse auf Case-Ebene}
 \label{sec:error_analysis}
@@ -394,7 +394,7 @@ Die folgenden Abschnitte analysieren qualitativ, welche Test-Cases von der Log-o
 
 \subsubsection{False-Negative-Cases}
 
-Log-only verfehlt 3 von 48 positiven Test-Cases (Recall$_{\text{mali}}$ = 0{,}9375). Alle drei False Negatives entstammen derselben Gruppe (\texttt{mali\_scenario\_6}) und liegen mit ihren Log-Scores moderat bis deutlich unterhalb des Validierungsthresholds $\tau_{\text{log}} = 0{,}1641$.
+Log-only verfehlt 3 von 48 positiven Test-Cases (Recall$_{\text{mali}}$ = 0{,}9375). Alle drei False Negatives entstammen derselben Gruppe (\texttt{mali/scenario\_6}, Szenarioname: \emph{Rootkit / Backdoor}) und liegen mit ihren Log-Scores moderat bis deutlich unterhalb des Validierungsthresholds $\tau_{\text{log}} = 0{,}1641$.
 
 \begin{table}[htb]
   \centering
@@ -411,7 +411,27 @@ Log-only verfehlt 3 von 48 positiven Test-Cases (Recall$_{\text{mali}}$ = 0{,}93
   \end{tabular}
 \end{table}
 
-Die Logs der drei Cases enthalten zwar sicherheitsrelevante Tokens (\texttt{cron}, \texttt{sshd}, \texttt{root}, \texttt{/etc/}), diese reichen im gewählten TF-IDF/LogReg-Modell jedoch nicht für eine positive Klassifikationsentscheidung aus. Die Fehleranalyse zeigt, dass \texttt{scenario\_6} ein Angriffsmuster enthält, dessen Log-Signatur vom Modell bei diesem Operating-Point nicht ausreichend erfasst wird. Die Threshold-Sensitivity-Analyse (Abschnitt~\ref{sec:sensitivity}) belegt bereits, dass kein validierungsbasierter Threshold diesen Gap schließt; eine nachträgliche Anpassung auf Basis der Testmenge wäre methodisch nicht zulässig.
+Die Logs der drei Cases enthalten Treffer aus der vordefinierten Security-Keyword-Liste (\texttt{cron}, \texttt{sshd}, \texttt{root}, \texttt{/etc/}); da Begriffe wie \texttt{cron} oder \texttt{sshd} in regulärem Systembetrieb generisch auftreten können, reichen diese Treffer im gewählten TF-IDF/LogReg-Modell nicht für eine positive Klassifikationsentscheidung aus. Die Fehleranalyse zeigt, dass \texttt{scenario\_6} (\emph{Rootkit / Backdoor}) ein Angriffsmuster enthält, dessen Log-Signatur vom Modell bei diesem Operating-Point nicht ausreichend erfasst wird.
+
+Tabelle~\ref{tab:mali_scenario_recall} zeigt die Recall-Aufschlüsselung nach malicious Test-Szenarien. \texttt{scenario\_6} erreicht einen Recall von 0{,}8750 (21~von~24~Cases erkannt); \texttt{scenario\_7} wird vollständig detektiert (Recall~=~1{,}0000). Das Szenario~6 ist damit insgesamt schwieriger, jedoch werden 21 von 24 Cases korrekt erkannt -- nur einzelne Cases liegen unterhalb der Entscheidungsgrenze, was auf eine uneinheitliche Log-Signatur innerhalb des Szenarios hindeutet.
+
+\begin{table}[htb]
+  \centering
+  \caption{Malicious Test-Szenarien: Recall der Log-only-Komponente (aus \texttt{docs/mali\_test\_scenario\_recall.csv})}
+  \label{tab:mali_scenario_recall}
+  \begin{tabular}{llrrrr}
+    \hline
+    \textbf{Szenario} & \textbf{Name} & \textbf{n} & \textbf{TP} & \textbf{FN} & \textbf{Recall} \\
+    \hline
+    \texttt{mali/scenario\_6} & Rootkit / Backdoor & 24 & 21 & 3 & 0{,}8750 \\
+    \texttt{mali/scenario\_7} & --                 & 24 & 24 & 0 & 1{,}0000 \\
+    \hline
+    \textbf{Gesamt} & & \textbf{48} & \textbf{45} & \textbf{3} & \textbf{0{,}9375} \\
+    \hline
+  \end{tabular}
+\end{table}
+
+Bei dem auf Validation ausgewählten Threshold bleiben die drei False-Negative-Cases unterhalb der Entscheidungsgrenze. Eine niedrigere Schwelle könnte den Recall erhöhen, würde jedoch voraussichtlich zusätzliche False Positives erzeugen; dieser Trade-off wird in der Threshold-Sensitivity sichtbar (Abschnitt~\ref{sec:sensitivity}). Eine nachträgliche Anpassung auf Basis der Testmenge wäre methodisch nicht zulässig.
 
 \subsubsection{False-Positive-Cases nach Szenario}
 
@@ -438,7 +458,9 @@ Die 52~False Positives von Log-only (FPR$_{\text{total}}$ = 0{,}2537) sind nicht
   \end{tabular}}%
 \end{table}
 
-Die Fehleranalyse zeigt, dass die Fehlklassifikationen szenarioabhängig konzentriert sind. Im anom-Bereich dominiert \texttt{scenario\_17} mit einer FPR von 0{,}6111 (11 von 18 Cases); alle weiteren anom-Szenarien weisen deutlich niedrigere Raten auf. Im norm-Bereich fällt \texttt{scenario\_8} besonders auf: alle 30~norm-Cases des Szenarios werden positiv klassifiziert (FPR~=~1{,}0000, $\bar{s}_{\text{log}}$ = 0{,}5226). Dieses Szenario enthält offenbar Log-Muster, die das TF-IDF-Modell stark mit mali-Klassen assoziiert. Dies erklärt, warum FPR$_{\text{norm}}$ = 0{,}2636 insgesamt etwas höher liegt als FPR$_{\text{anom}}$ = 0{,}2368. Eine kausale Erklärung der szenariospezifischen Log-Muster erfordert eine tiefere manuelle Log-Inspektion und liegt außerhalb des Kernumfangs dieser Arbeit.
+Die Fehleranalyse zeigt, dass die Fehlklassifikationen szenarioabhängig konzentriert sind. Im anom-Bereich dominiert \texttt{anom/scenario\_17} mit einer FPR von 0{,}6111 (11 von 18 Cases); alle weiteren anom-Szenarien weisen deutlich niedrigere Raten auf. Für \texttt{anom/scenario\_17} liegt kein offiziell bekannter Szenarioname vor; die Log-Scores dieses Szenarios liegen im Schnitt bei 0{,}3218 und damit weit oberhalb des Thresholds, was auf systematisch erhöhte Treffer aus der vordefinierten Security-Keyword-Liste hinweist, die das Modell stark mit mali-Klassen assoziiert.
+
+Im norm-Bereich fällt \texttt{norm/scenario\_8} (\emph{Search Engine Aggressive Crawl}) besonders auf: alle 30~norm-Cases des Szenarios werden positiv klassifiziert (FPR~=~1{,}0000, $\bar{s}_{\text{log}}$ = 0{,}5226). Ein aggressiver Web-Crawler erzeugt in Server-Logs oberflächlich attackenähnliche Muster~-- etwa dichte HTTP-Request-Serien, ungewöhnliche User-Agent-Strings oder wiederholte Zugriffsversuche~-- obwohl es sich um ein normales, wenn auch ressourcenintensives Ereignis handelt. Das TF-IDF-Modell kann diesen Unterschied allein anhand der Termstatistiken nicht zuverlässig auflösen. Dies erklärt, warum FPR$_{\text{norm}}$ = 0{,}2636 insgesamt etwas höher liegt als FPR$_{\text{anom}}$ = 0{,}2368. Eine kausale Erklärung der szenariospezifischen Log-Muster erfordert eine tiefere manuelle Log-Inspektion und liegt außerhalb des Kernumfangs dieser Arbeit.
 
 \begin{figure}[htb]
   \centering
@@ -475,7 +497,7 @@ Die Kernlogiken der Pipeline werden durch 43~Unit-Tests abgesichert (\texttt{tes
 
   \item \textbf{Case-Level Metrik-Baseline} (\texttt{TestCaseLevelMetricBaseline}, 6~Tests): Verifiziert die Gruppendisjunktheit auf Case-Ebene, eine Zeile pro Case in den Feature-Artefakten, die Abwesenheit von Row-Level-Leakage in den Features sowie die validierungsbasierte Threshold-Wahl.
 
-  \item \textbf{Log-Normalisierung und Scores} (\texttt{TestLogNormalizationAndScores}, 6~Tests): Prüft, dass die Normalisierungsfunktion IPs, Zeitstempel, PIDs und isolierte Zahlen ersetzt, attack-relevante Schlüsselwörter erhält, Case-Level-Scores korrekt vorliegen und das TF-IDF-Vokabular ausschließlich auf Trainingsdaten gefittet wird.
+  \item \textbf{Log-Normalisierung und Scores} (\texttt{TestLogNormalizationAndScores}, 6~Tests): Prüft, dass die Normalisierungsfunktion IPs, Zeitstempel, PIDs und isolierte Zahlen ersetzt, sicherheitsrelevante Terme der vordefinierten Keyword-Liste erhält, Case-Level-Scores korrekt vorliegen und das TF-IDF-Vokabular ausschließlich auf Trainingsdaten gefittet wird.
 
   \item \textbf{Case-Level Fusion} (\texttt{TestCaseLevelFusion}, 7~Tests): Verifiziert, dass die Fusion ausschließlich Case-Level-Scores verwendet, eine Zeile pro Test-Case vorliegt, der Soft-Fusion-Threshold aus Validation stammt und die FPR-Aufschlüsselung nach Datensatztyp konsistent ist.
 \end{enumerate}
@@ -488,7 +510,7 @@ Vollständige Reproduzierbarkeit wird durch \texttt{random\_state=42} in allen S
 
 \subsection{Beantwortung der Forschungsfrage}
 
-Die Forschungsfrage lautete, ob eine zweistufige hybride Pipeline die False-Positive-Rate auf CloudAnoBench deutlich senken kann, ohne die Recall-Rate unter~0{,}95 zu drücken. Die Ablation-Ergebnisse in Abschnitt~\ref{sec:ablation} beantworten diese Frage differenziert: Die Log-Komponente reduziert die FPR$_{\text{total}}$ von 1{,}0000 (Metrics-only) auf 0{,}2537 -- der Log-Kontext ist damit der dominante Faktor der False-Positive-Reduktion. Der Test-Recall$_{\text{mali}}$ beträgt 0{,}9375, was die angestrebte Schwelle von 0{,}95 knapp verfehlt (3~von~48~positiven Cases nicht detektiert). Die Fusionsstufe liefert keinen Zusatznutzen gegenüber Log-only.
+Die Forschungsfrage lautete, ob eine zweistufige hybride Pipeline die False-Positive-Rate auf CloudAnoBench deutlich senken kann, ohne die Recall-Rate unter~0{,}95 zu drücken. Die Ablation-Ergebnisse in Abschnitt~\ref{sec:ablation} beantworten diese Frage differenziert: Die Log-Komponente reduziert die FPR$_{\text{total}}$ von 1{,}0000 (Metrics-only) auf 0{,}2537 -- der Log-Kontext ist damit der bestimmende Faktor der False-Positive-Reduktion. Der Test-Recall$_{\text{mali}}$ beträgt 0{,}9375, was die angestrebte Schwelle von 0{,}95 knapp verfehlt (3~von~48~positiven Cases nicht detektiert). Die Fusionsstufe liefert keinen Zusatznutzen gegenüber Log-only.
 
 Das entscheidende Systemelement ist die Log-Komponente. Die log-basierte Klassifikation auf Case-Ebene identifiziert anhand textueller Systemereignismuster, welche Cases nicht als malicious einzustufen sind. Die Fusionsstufe trägt in dieser Konfiguration keinen eigenständigen Beitrag: AND-Fusion degeneriert zu Log-only (metric\_trigger = 253/253~=~100~\%), und Soft-Fusion verschlechtert die Diskriminanz durch Multiplikation mit dem schwachen Metrik-Score.
 
@@ -496,8 +518,8 @@ Das entscheidende Systemelement ist die Log-Komponente. Die log-basierte Klassif
 
 Die deutliche FPR-Reduktion durch die Log-Komponente lässt sich durch den
 zusätzlichen Informationsgehalt der Log-Daten erklären. Log-Meldungen enthalten
-semantisch reichhaltige Ereignisbeschreibungen. Diese können Ursache und Art
-eines Betriebsvorgangs qualitativ charakterisieren. Metriken hingegen messen quantitative Systemzustände und können zwischen unterschiedlichen Ereignistypen mit identischer Intensität nicht unterscheiden. TF-IDF kann diskriminierende Terme identifizieren, die in malignen Cases systematisch häufiger oder seltener auftreten als in normalen oder anomalen Cases~\cite{he2021survey}.
+semantisch reichhaltige Ereignisbeschreibungen, die Ursache und Art eines
+Betriebsvorgangs qualitativ charakterisieren können. Metriken hingegen messen quantitative Systemzustände und können zwischen unterschiedlichen Ereignistypen mit identischer Intensität nicht unterscheiden. TF-IDF kann diskriminierende Terme identifizieren, die in malignen Cases systematisch häufiger oder seltener auftreten als in normalen oder anomalen Cases~\cite{he2021survey}.
 
 Die Analyse auf Case-Ebene statt Zeilenebene ist dabei konzeptuell angemessen: Die Entscheidung, ob ein Security-Alert ausgelöst werden soll, bezieht sich auf eine Beobachtungseinheit (Case) als Ganzes, nicht auf einen einzelnen Messpunkt.
 
@@ -536,4 +558,4 @@ Konzeptuell ließe sich die Pipeline als verteilbare Abfolge von Filter- und Ver
 
 Es ist jedoch ausdrücklich festzuhalten, dass diese Skalierbarkeitsbetrachtung konzeptueller Natur ist. Eine verteilte Implementierung wurde im Rahmen dieser Arbeit weder realisiert noch gemessen. Die berichteten Latenzzeiten (Phase~2: 54{,}7\,ms, Phase~3: 2{,}4\,ms, gesamt sequenziell: 57{,}1\,ms) beziehen sich auf die sequenzielle Ausführung des Fusion-Notebooks auf einem einzelnen Rechner; eine detaillierte Hardware-Spezifikation liegt nicht vor. Die in den Einzelnotizbüchern gemessenen Werte (Phase~2: 52{,}1\,ms, Phase~3: 0{,}6\,ms) können aufgrund abweichender Ausführungskontexte und Laufzeitumgebungen leicht davon abweichen; alle Latenzangaben sind daher als indikative Messungen zu verstehen.
 
-Eine Einbettung der Pipeline in Data-Intelligence-Plattformen wie Databricks oder Snowflake sowie ein automatisiertes Modell-Lifecycle-Management~--- etwa über MLflow zur Überwachung von Model~Drift in dynami\-schen Cloud-Um\-gebungen~--- wären naheliegende Erweiterungen für eine produktionsnahe Umsetzung. Diese Aspekte wurden in der vorliegenden Arbeit weder implementiert noch empirisch evaluiert und liegen außerhalb des Scopes dieser Benchmark-Studie. Die Skalierbarkeitsbetrachtung bleibt daher auf die konzeptuelle Zerlegung der Pipeline in verteilbare Filter- und Verifikationsschritte beschränkt.
+Eine Einbettung der Pipeline in Data-Intelligence-Plattformen wie Databricks oder Snowflake sowie ein automatisiertes Modell-Lifecycle-Management~--- etwa über MLflow zur Überwachung von Model~Drift in dynami\-schen Cloud-Um\-gebungen~--- wären naheliegende Erweiterungen für eine produktionsnahe Umsetzung. Diese Aspekte wurden in der vorliegenden Arbeit weder implementiert noch empirisch evaluiert und liegen außerhalb des Rahmens dieser Benchmark-Studie. Die Skalierbarkeitsbetrachtung bleibt daher auf die konzeptuelle Zerlegung der Pipeline in verteilbare Filter- und Verifikationsschritte beschränkt.

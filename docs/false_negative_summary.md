@@ -13,9 +13,9 @@
 
 | case_id | scenario_id | log_score | threshold | margin | qualitative_note |
 |---|---|---|---|---|---|
-| mali_6_10.csv | scenario_6 | 0.071899 | 0.164056 | -0.092157 | score moderately below threshold; contains several attack-related tokens |
-| mali_6_16.csv | scenario_6 | 0.067102 | 0.164056 | -0.096954 | score moderately below threshold; contains several attack-related tokens |
-| mali_6_24.csv | scenario_6 | 0.055297 | 0.164056 | -0.108759 | score far below threshold, logs appear weakly indicative; contains several attack-related tokens |
+| mali_6_10.csv | scenario_6 | 0.071899 | 0.164056 | -0.092157 | score moderately below threshold; several security-relevant keyword hits (e.g. cron, sshd, root) |
+| mali_6_16.csv | scenario_6 | 0.067102 | 0.164056 | -0.096954 | score moderately below threshold; several security-relevant keyword hits (e.g. cron, sshd, root) |
+| mali_6_24.csv | scenario_6 | 0.055297 | 0.164056 | -0.108759 | score far below threshold, logs appear weakly indicative; several security-relevant keyword hits (e.g. cron, sshd, root) |
 
 ## Score-Abstände zum Threshold
 
