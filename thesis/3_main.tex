@@ -510,11 +510,11 @@ Die Kernlogiken der Pipeline werden durch 52~Unit-Tests in 12~Klassen abgesicher
 
   \item \textbf{Case-Level Fusion} (\texttt{TestCaseLevelFusion}, 7~Tests): Verifiziert, dass die Fusion ausschließlich Case-Level-Scores verwendet, eine Zeile pro Test-Case vorliegt, der Soft-Fusion-Threshold aus Validation stammt und die FPR-Aufschlüsselung nach Datensatztyp konsistent ist.
 
-  \item \textbf{False-Negative-Analyse} (\texttt{TestFalseNegativeCases}, 6~Tests): Prüft, dass genau 3~FN-Cases vorliegen, alle dem Typ mali entstammen, ihre Log-Scores unterhalb des Validierungsthresholds liegen und die Margins korrekt berechnet sind.
+  \item \textbf{False-Negative-Analyse} (\texttt{TestFalseNegativeCases}, 3~Tests): Prüft, dass genau 3~FN-Cases vorliegen, alle dem Typ mali entstammen und ihre Log-Scores unterhalb des Validierungsthresholds liegen.
 
-  \item \textbf{False-Positive-Szenario-Analyse} (\texttt{TestFalsePositiveByScenario}, 7~Tests): Verifiziert die szenariospezifische FP-Aggregation, die Konsistenz der FPR-Berechnung und die korrekte Identifikation der Top-Szenarien (\texttt{norm/scenario\_8}, \texttt{anom/scenario\_17}).
+  \item \textbf{False-Positive-Szenario-Analyse} (\texttt{TestFalsePositiveByScenario}, 5~Tests): Verifiziert die szenariospezifische FP-Aggregation, die Konsistenz der FPR-Berechnung und die korrekte Identifikation der Top-Szenarien (\texttt{norm/scenario\_8}, \texttt{anom/scenario\_17}).
 
-  \item \textbf{Fehleranalyse ändert keine Hauptergebnisse} (\texttt{TestErrorAnalysisDoesNotChangeFinalResults}, 2~Tests): Stellt sicher, dass die diagnostische Fehleranalyse keine Modelle neu trainiert, keine Thresholds verändert und keine finalen Hauptmetriken beeinflusst.
+  \item \textbf{Fehleranalyse ändert keine Hauptergebnisse} (\texttt{TestErrorAnalysisDoesNotChangeFinalResults}, 1~Test): Stellt sicher, dass die diagnostische Fehleranalyse keine Modelle neu trainiert, keine Thresholds verändert und keine finalen Hauptmetriken beeinflusst.
 \end{enumerate}
 \end{sloppypar}
 
@@ -554,7 +554,7 @@ Mehrere methodische Einschränkungen begrenzen die Generalisierbarkeit der Befun
 
 \textbf{Einzelner Train-Validation-Test-Split.} Es wurde lediglich ein einziger gruppenbasierter Train-Validation-Test-Split durchgeführt. Die Streuung der Ergebnismetriken über verschiedene Splits ist damit unbekannt. Threshold-Wahl und Early Stopping erfolgen ausschließlich auf dem Validierungsset, sodass das Testset als unberührter Holdout dient. Cawley und Talbot~\cite{cawley2010over} weisen darauf hin, dass die Abhängigkeit von einem einzigen Split die Stabilität der Ergebnisse nicht belegt; Bootstrap-Konfidenzintervalle oder wiederholte Splits könnten diese Limitation in zukünftigen Arbeiten adressieren.
 
-\textbf{Kleine positive Testmenge.} Das Testset enthält lediglich 48~positive Cases (mali). Konfidenzintervalle für die berichteten Metriken wurden nicht berechnet; die Punktschätzungen der FPR und des Recalls sind daher mit entsprechender Vorsicht zu interpretieren.
+\textbf{Kleine positive Testmenge.} Das Testset enthält lediglich 48~positive Cases (mali). Über das im Ausblick berichtete Wilson-Konfidenzintervall für den Recall hinaus wurden keine Konfidenzintervalle für die übrigen Metriken berechnet; die Punktschätzungen der FPR und des Recalls sind daher mit entsprechender Vorsicht zu interpretieren.
 
 \textbf{Synthetischer Datensatz.} CloudAnoBench ist ein synthetisch generierter Datensatz und kein aufgezeichneter Produktions-Traffic. Ob die gelernten Textmuster auf andere Cloud-Umgebungen, andere Log-Formate oder reale Angriffe übertragbar sind, ist durch diese Arbeit nicht untersucht. Arp~et~al.~\cite{arp2022dos} weisen allgemein darauf hin, dass die Übertragbarkeit von im Labor evaluierten ML-Sicherheitsmodellen auf reale Einsatzumgebungen systematisch überschätzt werden kann.
 
