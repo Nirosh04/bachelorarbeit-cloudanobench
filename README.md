@@ -1,4 +1,4 @@
-# Reduzierung von False Positives in der Cloud-Sicherheit durch hybride Analyse von Metriken und Log-Kontext
+# Reduzierung von False Positives in der Cloud-Sicherheit durch Einbeziehung von Log-Kontext in eine metrikbasierte Detection-Pipeline
 
 Bachelorarbeit Informatik · Freie Universität Berlin · Nirosh Heintze
 
