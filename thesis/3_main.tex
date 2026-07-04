@@ -35,7 +35,7 @@ Tabelle~\ref{tab:datenbasis} fasst die Datenbasis zusammen. Lediglich eine einzi
 
 Die Rohdaten liegen im CSV-Format vor und weisen zwei typische Qualitätsprobleme auf. Erstens enthalten einige Felder residuale Anführungszeichen aus einer überlagerten CSV-Kodierung (Parameter \texttt{quoting=3} beim Einlesen), die durch eine explizite Zeichenkettenbereinigung entfernt werden. Zweitens sind numerische Felder in einigen Dateien als Zeichenketten kodiert und müssen in Fließkommazahlen überführt werden.
 
-Die Median-Imputation fehlender Werte erfolgt in zwei inhaltlich getrennten Kontexten: In Phase~1 wird für die explorative Datenanalyse und die Erstellung der bereinigten Parquet-Artefakte eine Self-Fit-Imputation auf den jeweils vollständig verfügbaren Typ-Daten durchgeführt. Dieser Schritt dient ausschließlich der Datenvorbereitung und Visualisierung; er hat keinen Evaluationsbezug. Für alle evaluationsrelevanten Schritte in Phase~2 und Phase~4 werden die Medianwerte hingegen ausschließlich auf dem Trainingsanteil berechnet, in \texttt{data/processed/mali\_train\_medians.json} gespeichert und danach ohne Neufittung auf die Testdaten angewendet. Diese Trennung schützt vor einem verbreiteten Fehler bei der Vorverarbeitung, der in der Literatur als \emph{Data Leakage} bezeichnet wird~\cite{kaufman2012leakage}.
+Die leakage-sichere Imputation fehlender Werte folgt einer festen Reihenfolge über mehrere Phasen. In Phase~1 (Notebook~01) wird das Schema harmonisiert und die numerische Konvertierung durchgeführt; fehlende Werte bleiben dabei als \texttt{NaN} erhalten. Die gespeicherten Parquet-Artefakte unter \texttt{data/processed/} können deshalb weiterhin \texttt{NaN}-Werte enthalten. Der Ordner \texttt{data/} ist nicht Bestandteil des öffentlichen Repositories und muss lokal bereitgestellt werden. In Phase~2 (Notebook~02) werden zunächst die fixierten Split-Zuordnungen angewendet. Für die fünf universellen Zeilenmetriken werden die Mediane ausschließlich aus den Trainingszeilen gemeinsam über mali, anom und norm bestimmt und in \texttt{data/processed/train\_medians.json} gespeichert; dieselben train-basierten Werte werden unverändert auf Train, Validation und Test angewendet. Erst danach werden die 25~Case-Level-Aggregate gebildet. Falls auf Case-Ebene noch fehlende Werte verbleiben, werden ergänzende Featuremediane ausschließlich aus \texttt{X\_train} bestimmt und unverändert auf Validation und Test angewendet. Eine nach \texttt{dataset\_type} getrennte Imputation findet nicht statt. Diese Trennung schützt vor einem verbreiteten Fehler bei der Vorverarbeitung, der in der Literatur als \emph{Data Leakage} bezeichnet wird~\cite{kaufman2012leakage}.
 
 Die Wahl des Medians gegenüber dem arithmetischen Mittel ist durch die Verteilung der Metriken motiviert: Systemmetriken wie \texttt{net\_out} zeigen häufig eine rechtsschiefe Verteilung mit einzelnen Ausreißerspitzen, gegen die der Median robust ist~\cite{huber2009robust}.
 
@@ -132,8 +132,8 @@ Um Zeitreiheninformationen auf Case-Ebene nutzbar zu machen, werden die Rohmessr
     \hline
     \textbf{Metrik} & \textbf{Wert} \\
     \hline
-    Average Precision (AP)                               & 0{,}2439 \\
-    Threshold (Val-Recall$_{\text{mali}}$ $\geq$ 0{,}95) & 0{,}0256 \\
+    Average Precision (AP)                               & 0{,}2652 \\
+    Threshold (Val-Recall$_{\text{mali}}$ $\geq$ 0{,}95) & 0{,}0258 \\
     Recall$_{\text{mali}}$ @ Threshold                   & 1{,}0000 \\
     Precision @ Threshold                                & 0{,}1897 \\
     F1-Maß @ Threshold                                   & 0{,}3189 \\
@@ -146,14 +146,14 @@ Um Zeitreiheninformationen auf Case-Ebene nutzbar zu machen, werden die Rohmessr
 \end{table}
 
 Tabelle~\ref{tab:baseline_results} fasst die Ergebnisse zusammen. Der XGBoost-Detektor erkennt auf Case-Ebene alle 48 positiven Test-Cases
-(Recall$_{\text{mali}}$ = 1{,}0000), klassifiziert aber gleichzeitig alle 205 negativen Cases als positiv (FPR$_{\text{total}}$ = 1{,}0000, TN~=~0). Die Metrik-Komponente ist auf diesem Benchmark \emph{nicht selektiv}: Sie kann nicht zwischen mali- und anom-/norm-Cases unterscheiden, weil viele technische Anomalien und Normalszenarien ähnlich hohe Metrik-Aggregate wie Malware-Aktivitäten aufweisen. Der niedrige Threshold von~0{,}0256 (bestimmt auf dem Validierungsset) markiert alle Test-Cases als metrisch auffällig.
+(Recall$_{\text{mali}}$ = 1{,}0000), klassifiziert aber gleichzeitig alle 205 negativen Cases als positiv (FPR$_{\text{total}}$ = 1{,}0000, TN~=~0). Die Metrik-Komponente ist auf diesem Benchmark \emph{nicht selektiv}: Sie kann nicht zwischen mali- und anom-/norm-Cases unterscheiden, weil viele technische Anomalien und Normalszenarien ähnlich hohe Metrik-Aggregate wie Malware-Aktivitäten aufweisen. Der niedrige Threshold von~0{,}0258 (bestimmt auf dem Validierungsset) markiert alle Test-Cases als metrisch auffällig.
 
 Abbildung~\ref{fig:pr_baseline} zeigt die zugehörige Precision-Recall-Kurve. Abbildung~\ref{fig:feat_imp} visualisiert die Feature-Importances des trainierten Modells nach dem Gain-Kriterium.
 
 \begin{figure}[htb]
   \centering
   \includegraphics[width=0.78\textwidth]{../docs/pr_curve_baseline}
-  \caption{Precision-Recall-Kurve der Metrik-Baseline (AP = 0{,}2439, Case-Ebene). Der markierte Punkt entspricht dem Threshold~0{,}026 (aus Validierungsset) bei Recall$_{\text{mali}}$ = 1{,}0000.}
+  \caption{Precision-Recall-Kurve der Metrik-Baseline (AP = 0{,}2652, Case-Ebene). Der markierte Punkt entspricht dem Threshold~0{,}026 (aus Validierungsset) bei Recall$_{\text{mali}}$ = 1{,}0000.}
   \label{fig:pr_baseline}
 \end{figure}
 
@@ -324,7 +324,7 @@ Tabelle~\ref{tab:sensitivity} zeigt das zentrale Ergebnis: Bei allen vier Recall
 
 \subsection{Fusion-Eingaben auf Case-Ebene}
 
-Beide Komponenten liefern direkt Case-Level-Scores. Die Metrik-Komponente (Abschnitt~\ref{sec:baseline}) gibt pro Case einen Score $\hat{p}_{\text{metric}}$ aus, der mit dem Validierungsschwellenwert von~0{,}0256 in einen binären \texttt{metric\_trigger} umgewandelt wird. Die Log-Komponente (Abschnitt~\ref{sec:log}) gibt pro Case einen Log-Score $\hat{p}_{\text{log}}$ aus, der mit dem Validierungsschwellenwert von~0{,}164 in einen binären \texttt{log\_trigger} umgewandelt wird. Ein Row-Level-Aggregationsschritt ist nicht erforderlich, da das Metrik-Modell direkt auf Case-Level-Aggregaten trainiert wurde.
+Beide Komponenten liefern direkt Case-Level-Scores. Die Metrik-Komponente (Abschnitt~\ref{sec:baseline}) gibt pro Case einen Score $\hat{p}_{\text{metric}}$ aus, der mit dem Validierungsschwellenwert von~0{,}0258 in einen binären \texttt{metric\_trigger} umgewandelt wird. Die Log-Komponente (Abschnitt~\ref{sec:log}) gibt pro Case einen Log-Score $\hat{p}_{\text{log}}$ aus, der mit dem Validierungsschwellenwert von~0{,}164 in einen binären \texttt{log\_trigger} umgewandelt wird. Ein Row-Level-Aggregationsschritt ist nicht erforderlich, da das Metrik-Modell direkt auf Case-Level-Aggregaten trainiert wurde.
 
 Im Testset von 253~Cases ergibt die metrische Klassifikation folgende Verteilung:
 
@@ -365,10 +365,10 @@ Tabelle~\ref{tab:ablation} stellt alle vier Systemvarianten auf Case-Ebene gegen
     \hline
     \textbf{Variante} & \textbf{Recall\textsubscript{mali}} & \textbf{Precision} & \textbf{F1} & \textbf{FPR\textsubscript{total}} & \textbf{FPR\textsubscript{anom}} & \textbf{FPR\textsubscript{norm}} & \textbf{AP} & \textbf{TP/FP/TN/FN} \\
     \hline
-    Metrics-only & 1{,}0000 & 0{,}1897 & 0{,}3189 & 1{,}0000 & 1{,}0000 & 1{,}0000 & 0{,}2439 & 48/205/0/0 \\
+    Metrics-only & 1{,}0000 & 0{,}1897 & 0{,}3189 & 1{,}0000 & 1{,}0000 & 1{,}0000 & 0{,}2652 & 48/205/0/0 \\
     Log-only     & 0{,}9375 & 0{,}4639 & 0{,}6207 & 0{,}2537 & 0{,}2368 & 0{,}2636 & 0{,}6548 & 45/52/153/3 \\
     AND-Fusion   & 0{,}9375 & 0{,}4639 & 0{,}6207 & 0{,}2537 & 0{,}2368 & 0{,}2636 & --      & 45/52/153/3 \\
-    Soft-Fusion  & 0{,}9375 & 0{,}4455 & 0{,}6040 & 0{,}2732 & 0{,}2632 & 0{,}2791 & 0{,}5756 & 45/56/149/3 \\
+    Soft-Fusion  & 0{,}9375 & 0{,}4545 & 0{,}6122 & 0{,}2634 & 0{,}2500 & 0{,}2713 & 0{,}5553 & 45/54/151/3 \\
     \hline
     \multicolumn{9}{l}{Alle Varianten auf Case-Ebene, $n=253$; AP für AND-Fusion nicht anwendbar (binärer Trigger).} \\
   \end{tabular}}%
@@ -388,7 +388,7 @@ Tabelle~\ref{tab:ablation} stellt alle vier Systemvarianten auf Case-Ebene gegen
   \label{fig:fpr_comp}
 \end{figure}
 
-Die zentralen Befunde lassen sich wie folgt zusammenfassen: Metrics-only erkennt alle positiven Cases, klassifiziert aber alle negativen Cases als positiv (FPR$_{\text{total}}$ = 1{,}0000). Log-only ist die stärkste Variante mit FPR$_{\text{total}}$ = 0{,}2537 bei Recall$_{\text{mali}}$ = 0{,}9375 (AP = 0{,}6548). AND-Fusion degeneriert zu Log-only, da der metrische Trigger bei allen 253~Test-Cases aktiv ist (vgl. Abschnitt~\ref{sec:degeneration}). Soft-Fusion erreicht denselben Recall wie Log-only, verschlechtert sich jedoch in Precision, F1, FPR und AP (F1: 0{,}6040 vs. 0{,}6207; FPR: 0{,}2732 vs. 0{,}2537; AP: 0{,}5756 vs. 0{,}6548). Auf diesem Benchmark liegt der wesentliche Beitrag zur False-Positive-Reduktion beim Log-Kontext; die untersuchten Fusionsregeln liefern gegenüber Log-only keinen Mehrwert.
+Die zentralen Befunde lassen sich wie folgt zusammenfassen: Metrics-only erkennt alle positiven Cases, klassifiziert aber alle negativen Cases als positiv (FPR$_{\text{total}}$ = 1{,}0000). Log-only ist die stärkste Variante mit FPR$_{\text{total}}$ = 0{,}2537 bei Recall$_{\text{mali}}$ = 0{,}9375 (AP = 0{,}6548). AND-Fusion degeneriert zu Log-only, da der metrische Trigger bei allen 253~Test-Cases aktiv ist (vgl. Abschnitt~\ref{sec:degeneration}). Soft-Fusion weist gegenüber Log-only denselben Recall auf, erzeugt jedoch zwei zusätzliche False Positives (54 vs.~52) und verschlechtert sich in Precision, F1, FPR und AP (F1: 0{,}6122 vs. 0{,}6207; FPR: 0{,}2634 vs. 0{,}2537; AP: 0{,}5553 vs. 0{,}6548). Soft-Fusion liefert daher keinen Zusatznutzen gegenüber Log-only. Auf diesem Benchmark liegt der wesentliche Beitrag zur False-Positive-Reduktion beim Log-Kontext; die untersuchten Fusionsregeln liefern gegenüber Log-only keinen Mehrwert.
 
 \subsection{Fehleranalyse auf Case-Ebene}
 \label{sec:error_analysis}
@@ -480,19 +480,21 @@ Im norm-Bereich fällt \texttt{norm/scenario\_8} (\emph{Search Engine Aggressive
 \subsection{AND-Gate-Degeneration}
 \label{sec:degeneration}
 
-Ein wesentlicher empirischer Befund dieser Arbeit ist die vollständige Degeneration des AND-Gates. Alle 253~Test-Cases erhalten ein \texttt{metric\_trigger=1} (253/253~=~100~\%) -- kein einziger Case löst den Metrikdetektor nicht aus. Die AND-Fusion ist damit funktional identisch zur reinen Log-Filterung: Da die Bedingung \texttt{metric\_trigger=1} für jeden Case erfüllt ist, gilt $\texttt{AND} = \texttt{metric\_trigger} \wedge \texttt{log\_trigger} = \texttt{log\_trigger}$. Die Konfusionsmatrizen von AND-Fusion und Log-only sind exakt gleich.
+Ein wesentlicher empirischer Befund dieser Arbeit ist die vollständige Degeneration des AND-Gates. Alle 253~Test-Cases erhalten ein \texttt{metric\_trigger=1} (253/253~=~100~\%) -- kein einziger Case löst den Metrikdetektor nicht aus. Die AND-Fusion ist damit funktional identisch zur reinen Log-Filterung: Da die Bedingung \texttt{metric\_trigger=1} für jeden Case erfüllt ist, gilt $\texttt{AND} = \texttt{metric\_trigger} \wedge \texttt{log\_trigger} = \texttt{log\_trigger}$. Durch die Einbeziehung des Log-Kontexts sinkt die FPR gegenüber Metrics-only; da der metrische Trigger jedoch alle Testfälle aktiviert, erzielt die AND-Fusion auf dem Testset keinen zusätzlichen Fusionsgewinn gegenüber Log-only. Die Konfusionsmatrizen von AND-Fusion und Log-only sind exakt gleich.
 
-Die Ursache liegt in der Kalibrierung des Metrik-Detektors. Der niedrige Validierungsthreshold von~0{,}0256 markiert alle Test-Cases als metrisch auffällig, unabhängig von ihrer tatsächlichen Klasse. Die 25~Case-Level-Features der fünf universellen Metriken liefern auf diesem Benchmark keine ausreichende Trennkraft, um anom- und norm-Cases von mali-Cases zu unterscheiden; viele technische Anomalien und Normalszenarien weisen ähnlich hohe Metrik-Aggregate wie Malware-Aktivitäten auf. Das AND-Gate, das konzeptionell als Zweistufenfilter gedacht ist, verliert dadurch seine Filterfunktion auf Metrikseite vollständig.
+Die Ursache liegt in der Kalibrierung des Metrik-Detektors. Der niedrige Validierungsthreshold von~0{,}0258 markiert alle Test-Cases als metrisch auffällig, unabhängig von ihrer tatsächlichen Klasse. Die 25~Case-Level-Features der fünf universellen Metriken liefern auf diesem Benchmark keine ausreichende Trennkraft, um anom- und norm-Cases von mali-Cases zu unterscheiden; viele technische Anomalien und Normalszenarien weisen ähnlich hohe Metrik-Aggregate wie Malware-Aktivitäten auf. Das AND-Gate, das konzeptionell als Zweistufenfilter gedacht ist, verliert dadurch seine Filterfunktion auf Metrikseite vollständig.
 
 Diese Degeneration ist kein Implementierungsfehler, sondern ein direktes Ergebnis der Nicht-Selektivität des Metrik-Detektors auf Case-Ebene in diesem Benchmark. Sie muss bei der Interpretation der Ergebnisse transparent benannt werden. Eine Möglichkeit, die Degeneration zu überwinden, wäre der Einsatz eines ausdrucksstärkeren metrischen Detektors (z.\,B. mit typspezifischen Features oder anderen Modellklassen). Dies liegt außerhalb des Rahmens dieser Arbeit.
 
 \subsection{Qualitätssicherung und Reproduzierbarkeit}
 
-Die Kernlogiken der Pipeline werden durch 52~Unit-Tests in 12~Klassen abgesichert (\texttt{test\_pipeline.py} im Verzeichnis \texttt{tests/}, pytest-Framework):
+Die Kernlogiken der Pipeline werden durch 58~Unit-Tests in 13~Klassen abgesichert (\texttt{test\_pipeline.py} im Verzeichnis \texttt{tests/}, pytest-Framework):
 
 \begin{sloppypar}
 \begin{enumerate}
-  \item \textbf{Canonical Matrix / Preprocessing} (\texttt{TestBuildCanonicalMatrix}, 4~Tests): Prüft die korrekte Behandlung fehlender Spalten, die leakage-sichere Imputation mit Trainings-Medianen, die vollständige NaN-Bereinigung nach Imputation sowie die Koerzion von quotenbehafteten Zeichenketten.
+  \item \textbf{Canonical Matrix / Preprocessing} (\texttt{TestBuildCanonicalMatrix}, 4~Tests): Prüft die korrekte Behandlung fehlender Spalten, die Erhaltung von \texttt{NaN} vor dem Split, die vollständige NaN-Bereinigung nach evaluationsrelevanter Imputation sowie die Koerzion von quotenbehafteten Zeichenketten.
+
+  \item \textbf{Zeilen-Imputation} (\texttt{TestRowLevelImputation}, 6~Tests): Verifiziert, dass keine Medianimputation vor dem Split erfolgt, Imputationsmediane ausschließlich aus Trainingszeilen stammen, derselbe Median je Feature auf alle \texttt{dataset\_type}-Werte und Splits angewendet wird und die finalen 25~Case-Level-Features keine \texttt{NaN} enthalten.
 
   \item \textbf{Fusion / Soft Score} (\texttt{TestFusionLogic}, 3~Tests): Verifiziert die AND-Gate-Wahr\-heits\-tabelle auf allen vier Eingangskombinationen sowie die Wertebereichseigenschaft des Soft Scores ($s_{\text{fusion}} \in [0,1]$).
 
@@ -542,7 +544,7 @@ Die Analyse auf Case-Ebene statt Zeilenebene ist dabei konzeptuell angemessen: D
 \subsection{Grenzen der Metrik-Komponente}
 \label{sec:limits_metric}
 
-Der metrische Detektor erzielt mit einer AP von 0{,}2439 eine schwache Diskriminationsleistung auf Case-Ebene. Die Schema-Leakage-Vermeidung (vgl. Abschnitt~\ref{sec:features}) beschränkt das Modell auf 25~Case-Level-Features der fünf universellen Metriken (je Metrik: Mittelwert, Maximum, Standardabweichung, 95.~Perzentil, Trend). Diese Aggregate bieten keine ausreichende Trennkraft zwischen mali- und anom-/norm-Cases: Viele technische Anomalien und Normalszenarien erzeugen ähnlich hohe Metrik-Spitzen wie Malware-Aktivitäten. Die Konsequenz ist ein niedriger operativer Threshold von~0{,}0256, der alle 253~Test-Cases als metrisch auffällig markiert (FPR$_{\text{total}}$ = 1{,}0000, TN~=~0) und die vollständige Degeneration des AND-Gates bedingt.
+Der metrische Detektor erzielt mit einer AP von 0{,}2652 eine schwache Diskriminationsleistung auf Case-Ebene. Die Schema-Leakage-Vermeidung (vgl. Abschnitt~\ref{sec:features}) beschränkt das Modell auf 25~Case-Level-Features der fünf universellen Metriken (je Metrik: Mittelwert, Maximum, Standardabweichung, 95.~Perzentil, Trend). Diese Aggregate bieten keine ausreichende Trennkraft zwischen mali- und anom-/norm-Cases: Viele technische Anomalien und Normalszenarien erzeugen ähnlich hohe Metrik-Spitzen wie Malware-Aktivitäten. Die Konsequenz ist ein niedriger operativer Threshold von~0{,}0258, der alle 253~Test-Cases als metrisch auffällig markiert (FPR$_{\text{total}}$ = 1{,}0000, TN~=~0) und die vollständige Degeneration des AND-Gates bedingt.
 
 Ein metrischer Detektor mit höherer Ausdrucksstärke -- etwa durch typspezifische Features oder tiefere Modellklassen -- könnte diese Einschränkungen möglicherweise mildern, ist jedoch mit dem Risiko erhöhten Schema-Leakages verbunden.
 
@@ -564,7 +566,7 @@ Mehrere methodische Einschränkungen begrenzen die Generalisierbarkeit der Befun
 
 \textbf{Recall-Gap der Log-Komponente.} Der Test-Recall der Log-Komponente verfehlt die angestrebte 0{,}95-Schwelle knapp. Die Threshold-Sensitivity-Analyse (vgl. Abschnitt~\ref{sec:sensitivity}) zeigt, dass keines der getesteten validierungsbasierten Recall-Ziele diesen Gap auf dem Testset schließt: Die betroffenen FN-Cases liegen unterhalb des niedrigsten Validierungsthresholds, der auf dem Validierungsset vollständigen Recall erzielt. Eine nachträgliche testbasierte Threshold-Optimierung wurde bewusst nicht durchgeführt, da sie dem Prinzip der leakage-sicheren Evaluation widerspräche~\cite{cawley2010over}.
 
-\textbf{Soft-Fusion ohne Mehrwert gegenüber Log-only.} Die Soft-Fusion-Strategie ($s = \hat{p}_{\text{metric}} \times \hat{p}_{\text{log}}$) erzielt eine AP von~0{,}5756, die unter der AP der Log-Komponente allein (0{,}6548) liegt. F1 und FPR sind ebenfalls schlechter (F1: 0{,}6040 vs. 0{,}6207; FPR$_{\text{total}}$: 0{,}2732 vs. 0{,}2537). Die Ursache liegt darin, dass der metrische Score bei allen Test-Cases nahezu konstant hoch ist: Die Multiplikation nivelliert die Diskriminanz des Log-Scores, ohne einen eigenständigen Informationsgewinn zu liefern. Tax~et~al.~\cite{tax2000combining} zeigen, dass die Produktregel bei abhängigen oder redundanten Repräsentationen schlechter abschneiden kann. Eine alternative Fusionsgewichtung könnte diesen Nachteil möglicherweise beheben, wurde aber nicht untersucht.
+\textbf{Soft-Fusion ohne Mehrwert gegenüber Log-only.} Die Soft-Fusion-Strategie ($s = \hat{p}_{\text{metric}} \times \hat{p}_{\text{log}}$) erzielt eine AP von~0{,}5553, die unter der AP der Log-Komponente allein (0{,}6548) liegt. F1 und FPR sind ebenfalls schlechter (F1: 0{,}6122 vs. 0{,}6207; FPR$_{\text{total}}$: 0{,}2634 vs. 0{,}2537). Die Ursache liegt darin, dass der metrische Score bei allen Test-Cases nahezu konstant hoch ist: Die Multiplikation nivelliert die Diskriminanz des Log-Scores, ohne einen eigenständigen Informationsgewinn zu liefern. Tax~et~al.~\cite{tax2000combining} zeigen, dass die Produktregel bei abhängigen oder redundanten Repräsentationen schlechter abschneiden kann. Eine alternative Fusionsgewichtung könnte diesen Nachteil möglicherweise beheben, wurde aber nicht untersucht.
 
 \textbf{Prototypischer Implementierungscharakter.} Die gesamte Pipeline ist in Jupyter Notebooks implementiert und als Forschungsprototyp zu verstehen. Es existiert keine paketierte, produktionsreife Software-Implementierung.
 

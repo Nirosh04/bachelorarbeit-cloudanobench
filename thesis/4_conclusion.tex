@@ -19,7 +19,7 @@ Fusionsvarianten (AND-Fusion, Soft-Fusion). Der Aufbau folgt einem
 scenario-aware dreistufigen Split (Train / Validation / Test) ohne
 Gruppenüberlappung; Threshold-Wahl und Early Stopping wurden ausschließlich
 auf dem Validierungsset vorgenommen, das Testset diente nur der finalen
-Evaluation. Die 52~Unit-Tests in 12~Testklassen sichern zentrale Teile der
+Evaluation. Die 58~Unit-Tests in 13~Testklassen sichern zentrale Teile der
 Implementierungslogik ab; die Reproduzierbarkeit wird zusätzlich durch fixierte
 Zufallsseeds (Testsplit: \texttt{random\_state=42}), gespeicherte Split-Zuordnungen
 und die dokumentierte Ausführungsreihenfolge unterstützt.
@@ -51,11 +51,12 @@ positiven Cases erkannt; 3~Cases bleiben undetektiert
 Trigger ist bei allen 253~Test-Cases aktiv (metric\_trigger~=~253/253~=~100~\%),
 sodass das AND-Gate vollständig degeneriert.
 
-\textbf{Soft-Fusion} erzielt denselben Recall wie Log-only, verschlechtert sich
-jedoch in Precision, F1, FPR und AP:
-F1~=~0{,}6040 (vs.~0{,}6207), FPR$_{\text{total}}$~=~0{,}2732
-(vs.~0{,}2537), AP~=~0{,}5756 (vs.~0{,}6548). Die Multiplikation mit dem
-schwachen metrischen Score nivelliert die Diskriminanz des Log-Scores.
+\textbf{Soft-Fusion} weist gegenüber Log-only denselben Recall auf, erzeugt
+jedoch zwei zusätzliche False Positives (54 vs.~52) und verschlechtert sich in
+Precision, F1, FPR und AP:
+F1~=~0{,}6122 (vs.~0{,}6207), FPR$_{\text{total}}$~=~0{,}2634
+(vs.~0{,}2537), AP~=~0{,}5553 (vs.~0{,}6548). Soft-Fusion liefert daher keinen
+Zusatznutzen gegenüber Log-only.
 
 % ---------------------------------------------------------------------------
 \subsection{Beantwortung der Forschungsfrage}

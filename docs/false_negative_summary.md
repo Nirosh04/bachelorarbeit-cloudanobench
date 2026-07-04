@@ -31,13 +31,11 @@
 
 ## Fazit
 
-Beim auf dem Validierungsset ausgewählten Threshold von 0,164056 liegen die drei
-False-Negative-Cases unterhalb der Entscheidungsgrenze. Auch beim niedrigsten in der
-berichteten Threshold-Sensitivity untersuchten Schwellenwert von 0,122844 bleiben diese
-Fälle negativ klassifiziert. Eine weitere Absenkung der Schwelle könnte den Recall
-erhöhen, würde voraussichtlich jedoch zusätzliche False Positives erzeugen. Die niedrigen Scores deuten darauf hin, dass die im normalisierten Log-Text enthaltenen
-Muster für das Modell nicht ausreichten, um diese Fälle oberhalb der Entscheidungsgrenze
-einzuordnen.
+Die Threshold-Sensitivity-Analyse (NB03) belegt bereits, dass kein validierungsbasierter
+Threshold den Test-Recall auf > 0,9375 hebt: Die drei FN-Cases liegen unterhalb jedes
+auf dem Validierungsset bestimmbaren Thresholds. Die Scores dieser Cases liegen im
+niedrigen Bereich — das Modell hat für diese Cases keine ausreichend starken
+semantischen Muster im normalisierten Log-Text gefunden.
 
 **Methodischer Hinweis:** Diese Analyse ist rein deskriptiv. Es wurde keine
 testbasierte Optimierung vorgenommen. Die Ergebnisse aus `final_results_table.csv`

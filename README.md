@@ -8,7 +8,7 @@ Diese Arbeit entwickelt und evaluiert eine zweistufige hybride Pipeline zur Redu
 
 ```
 notebooks/          Jupyter-Notebooks (Phase 1–5, in Reihenfolge ausführen)
-tests/              pytest-Suite (52 Unit-Tests, 12 Testklassen)
+tests/              pytest-Suite (58 Unit-Tests, 13 Testklassen)
 docs/               Abbildungen und Audit-Artefakt (fusion_cases.csv)
 thesis/             LaTeX-Quellen und kompilierte PDF
 data/               Datensatzverzeichnis (nicht im Repo enthalten, s. u.)
@@ -51,7 +51,7 @@ Jedes Notebook setzt die Ausgaben des vorherigen voraus (`data/processed/` und `
 python -m pytest tests/ -v
 ```
 
-Erwartet: 52 Tests, alle grün.
+Erwartet: 58 Tests, alle grün.
 
 ## Thesis kompilieren
 

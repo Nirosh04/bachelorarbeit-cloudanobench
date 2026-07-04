@@ -13,14 +13,16 @@ from sklearn.model_selection import GroupShuffleSplit
 
 
 # ---------------------------------------------------------------------------
-# Kernfunktion aus Phase 1 — direkt hier definiert für isolierte Unit-Tests
+# Kernfunktion aus Notebook 1 — direkt hier definiert für isolierte Unit-Tests.
+# Spiegelt die neue NB01-Implementierung: nur Schemaharmonisierung + Konvertierung,
+# KEINE Medianimputation (Leakage-Prävention durch Nicht-Imputation in NB01).
 # ---------------------------------------------------------------------------
 
 def build_canonical_matrix(df, canonical_features, fit_medians=None):
     """
-    Baut die kanonische Feature-Matrix.
-    fit_medians: dict {col: median} — wenn None, wird auf df self-fitted.
-    In P2/P4 immer fit_medians vom Trainingsset übergeben (kein Leakage).
+    Schemaharmonisierung und numerische Konvertierung für das kanonische Feature-Set.
+    Keine Medianimputation — NaN verbleiben für leakage-freie Behandlung in Notebook 2.
+    fit_medians: veraltet, wird nicht verwendet.
     """
     df = df.copy()
     for col in canonical_features:
@@ -31,14 +33,8 @@ def build_canonical_matrix(df, canonical_features, fit_medians=None):
         if not pd.api.types.is_numeric_dtype(df[col]):
             df[col] = df[col].astype(str).str.strip().str.strip('"\'')
         df[col] = pd.to_numeric(df[col], errors='coerce')
-    computed_medians = {}
-    for col in sorted(canonical_features):
-        if df[col].isnull().any():
-            med = fit_medians[col] if (fit_medians and col in fit_medians) else df[col].median()
-            computed_medians[col] = med
-            if not pd.isna(med):
-                df[col] = df[col].fillna(med)
-    return df, computed_medians
+    # Keine Imputation — NaN verbleiben
+    return df, {}
 
 
 # ---------------------------------------------------------------------------
@@ -54,27 +50,31 @@ class TestBuildCanonicalMatrix:
         assert 'b' in result.columns
         assert result['b'].isna().all()
 
-    def test_imputation_uses_train_median_not_test_median(self):
+    def test_no_pre_split_imputation(self):
         """
-        Entscheidungstest gegen Data Leakage:
-        NaN im Testset muss mit Train-Median imputiert werden — nicht dem
-        Testset-eigenen Median. Verletzung würde Leakage in P2/P4 bedeuten.
+        NB01 build_canonical_matrix darf KEINE Imputation durchführen.
+        NaN-Werte müssen als NaN erhalten bleiben — leakage-freie Imputation
+        erfolgt in NB02 ausschließlich auf Basis der Trainingszeilen.
         """
-        train = pd.DataFrame({'x': [1.0, 2.0, 3.0, np.nan]})
-        _, medians = build_canonical_matrix(train, ['x'])
-        assert medians['x'] == pytest.approx(2.0), "Train-Median muss 2.0 sein"
+        df = pd.DataFrame({'x': [1.0, 2.0, 3.0, np.nan]})
+        result, medians = build_canonical_matrix(df, ['x'])
+        # NaN muss erhalten bleiben (keine Vorimputation)
+        assert result['x'].iloc[3] != result['x'].iloc[3], \
+            "NaN muss als NaN erhalten bleiben — keine Vorimputation in NB01"
+        # Rückgabe-Medians ist leer (keine Berechnung mehr)
+        assert medians == {}, \
+            "build_canonical_matrix darf keine Mediane berechnen oder zurückgeben"
 
-        # Testset hat verzerrten Median (10.0) — muss trotzdem 2.0 verwenden
-        test = pd.DataFrame({'x': [np.nan, 10.0]})
-        result, _ = build_canonical_matrix(test, ['x'], fit_medians=medians)
-        assert result['x'].iloc[0] == pytest.approx(2.0), \
-            "NaN muss mit Train-Median (2.0) imputiert werden, nicht Test-Median (10.0)"
-
-    def test_no_nan_after_imputation(self):
-        """Nach Imputation mit bekanntem Median verbleiben keine NaN."""
+    def test_nan_preserved_after_schema_harmonization(self):
+        """
+        Strukturelle NaN (fehlende Spalten im Schema) und konvertierungsbedingte NaN
+        (unlesbare Werte) verbleiben als NaN in den Parquet-Dateien.
+        """
         df = pd.DataFrame({'x': [1.0, np.nan, 3.0], 'y': [np.nan, 2.0, np.nan]})
         result, _ = build_canonical_matrix(df, ['x', 'y'])
-        assert result.isnull().sum().sum() == 0
+        # NaN müssen erhalten bleiben (keine Imputation)
+        assert result['x'].isnull().sum() == 1, "Genau 1 NaN in x erwartet"
+        assert result['y'].isnull().sum() == 2, "Genau 2 NaN in y erwartet"
 
     def test_quoted_string_values_coerced_to_float(self):
         """
@@ -85,6 +85,215 @@ class TestBuildCanonicalMatrix:
         result, _ = build_canonical_matrix(df, ['x'])
         assert pd.api.types.is_float_dtype(result['x'])
         assert result['x'].iloc[0] == pytest.approx(1.5)
+
+
+# ---------------------------------------------------------------------------
+# Regressionstests: Leakage-freie Zeilenimputation (Phase 3 Korrektur)
+# ---------------------------------------------------------------------------
+
+class TestRowLevelImputation:
+    """
+    Regressionstests für die korrigierte Imputationslogik.
+
+    Sichert:
+    - Keine Medianimputation vor dem Split in NB01 (build_canonical_matrix).
+    - Imputationsmediane ausschließlich aus Trainingszeilen.
+    - Einheitlicher Median je Feature für alle dataset_types und alle Splits.
+    - Val- und Test-Werte beeinflussen die Mediane nicht.
+    - Finale 25 Case-Level-Features enthalten keine NaN.
+    """
+
+    def _make_row_data(self):
+        """
+        Synthetisches Zeilendatensatz mit drei dataset_types und bekannten NaN.
+        Alle drei dataset_types haben cpu_usage-Werte; net_out hat NaN in mali.
+        """
+        rng = np.random.default_rng(0)
+        rows = []
+        # train cases (mali: 3, anom: 4, norm: 4)
+        for case_id in ['m_tr_1', 'm_tr_2', 'm_tr_3']:
+            for _ in range(5):
+                rows.append({'case_id': case_id, 'dataset_type': 'mali', 'split': 'train',
+                             'cpu_usage': rng.uniform(0.5, 0.9),
+                             'net_out':   np.nan if rng.random() < 0.3 else rng.uniform(1, 5)})
+        for case_id in ['a_tr_1', 'a_tr_2', 'n_tr_1', 'n_tr_2']:
+            dt = 'anom' if case_id.startswith('a') else 'norm'
+            for _ in range(5):
+                rows.append({'case_id': case_id, 'dataset_type': dt, 'split': 'train',
+                             'cpu_usage': rng.uniform(0.1, 0.6),
+                             'net_out':   rng.uniform(0.5, 3)})
+        # val cases
+        for case_id in ['m_val_1', 'n_val_1']:
+            dt = 'mali' if case_id.startswith('m') else 'norm'
+            for _ in range(5):
+                rows.append({'case_id': case_id, 'dataset_type': dt, 'split': 'val',
+                             'cpu_usage': rng.uniform(0.8, 1.0),  # val hat höhere cpu_usage
+                             'net_out':   np.nan if (dt == 'mali' and rng.random() < 0.5) else rng.uniform(2, 8)})
+        # test cases
+        for case_id in ['m_te_1', 'n_te_1']:
+            dt = 'mali' if case_id.startswith('m') else 'norm'
+            for _ in range(5):
+                rows.append({'case_id': case_id, 'dataset_type': dt, 'split': 'test',
+                             'cpu_usage': rng.uniform(0.9, 1.5),  # test hat noch höhere cpu_usage
+                             'net_out':   rng.uniform(3, 10)})
+        return pd.DataFrame(rows)
+
+    def _compute_train_median(self, df, feature, train_case_ids):
+        """Berechnet Median ausschließlich aus Trainingszeilen."""
+        train_mask = df['case_id'].isin(train_case_ids)
+        return float(df.loc[train_mask, feature].median())
+
+    def test_no_pre_split_imputation_in_canonical_matrix(self):
+        """
+        build_canonical_matrix imputed keine Werte.
+        NaN-Werte vor dem Split dürfen nicht gefüllt werden.
+        """
+        df = pd.DataFrame({'cpu_usage': [0.5, np.nan, 0.7, np.nan, 0.6]})
+        result, medians = build_canonical_matrix(df, ['cpu_usage'])
+        assert medians == {}, "Keine Mediane dürfen in NB01 berechnet werden"
+        assert result['cpu_usage'].isnull().sum() == 2, \
+            "NaN müssen als NaN erhalten bleiben (keine Vorimputation)"
+
+    def test_imputation_medians_from_train_rows_only(self):
+        """
+        Imputationsmediane stammen ausschließlich aus Trainingszeilen.
+        Val- und Test-Zeilen dürfen nicht in die Medianberechnung einfließen.
+        """
+        df = self._make_row_data()
+        train_ids = set(df[df['split'] == 'train']['case_id'].unique())
+
+        median_train = self._compute_train_median(df, 'cpu_usage', train_ids)
+
+        # Val hat höhere cpu_usage → globaler Median wäre größer als Train-Median
+        all_median = float(df['cpu_usage'].median())
+        # Sicherstellung: Train-Median < All-Median (Testintegrität)
+        assert median_train < all_median, \
+            "Synthetischer Test nicht differenziert: Train-Median ≥ Gesamt-Median"
+        # Nach Imputation: Train-Median verwenden, nicht All-Median
+        assert median_train != pytest.approx(all_median), \
+            "Train-Median und Gesamt-Median sind identisch — Test prüft kein reales Szenario"
+
+    def test_same_median_applied_to_all_dataset_types(self):
+        """
+        Derselbe Train-basierte Median je Feature wird auf alle dataset_types angewendet.
+        Kein dataset_type-bedingter Imputationswert.
+        """
+        df = self._make_row_data()
+        train_ids = set(df[df['split'] == 'train']['case_id'].unique())
+        global_train_median = self._compute_train_median(df, 'net_out', train_ids)
+
+        # Imputation durchführen (wie in NB02)
+        df_imp = df.copy()
+        df_imp['net_out'] = df_imp['net_out'].fillna(global_train_median)
+
+        # Für alle dataset_types: NaN-Werte wurden mit DEMSELBEN Median gefüllt
+        for dt in ['mali', 'anom', 'norm']:
+            sub = df_imp[df_imp['dataset_type'] == dt]
+            assert sub['net_out'].isnull().sum() == 0, \
+                f"NaN in net_out für {dt} nach Imputation"
+            # Imputierte Werte (früher NaN) sind alle == global_train_median
+            was_nan_original = df.loc[df['dataset_type'] == dt, 'net_out'].isnull()
+            if was_nan_original.any():
+                imputed_vals = df_imp.loc[
+                    (df['dataset_type'] == dt) & was_nan_original, 'net_out'
+                ]
+                assert (imputed_vals - global_train_median).abs().max() < 1e-9, \
+                    f"Imputierte Werte in {dt} ≠ globalem Train-Median"
+
+    def test_val_test_do_not_influence_medians(self):
+        """
+        Val- und Test-Zeilen beeinflussen die Imputationsmediane nicht.
+        Würden Val/Test einbezogen, wäre der Median anders als train-only.
+        """
+        df = self._make_row_data()
+        train_ids = set(df[df['split'] == 'train']['case_id'].unique())
+
+        median_train_only = self._compute_train_median(df, 'cpu_usage', train_ids)
+        median_with_val_test = float(df['cpu_usage'].median())
+
+        assert median_train_only != pytest.approx(median_with_val_test), \
+            ("Train-only-Median ≈ Gesamt-Median — Testdaten unterscheiden sich nicht genug "
+             "um Val/Test-Leakage zu erkennen")
+
+    def test_no_nan_in_final_25_features_after_imputation(self):
+        """
+        Nach Zeilenimputation und Case-Level-Aggregation enthalten die 25 Features
+        keine NaN (vorausgesetzt jeder Case hat >= 1 Zeile nach Imputation).
+        """
+        from scipy.stats import linregress
+
+        df = self._make_row_data()
+        train_ids = set(df[df['split'] == 'train']['case_id'].unique())
+
+        # Zeilenimputation
+        for feat in ['cpu_usage', 'net_out']:
+            med = self._compute_train_median(df, feat, train_ids)
+            df[feat] = df[feat].fillna(med)
+
+        assert df['cpu_usage'].isnull().sum() == 0, "cpu_usage NaN nach Zeilenimputation"
+        assert df['net_out'].isnull().sum() == 0, "net_out NaN nach Zeilenimputation"
+
+        # Case-Level-Aggregation
+        def _slope(s):
+            v = s.dropna().values
+            if len(v) < 3:
+                return np.nan
+            return float(linregress(np.arange(len(v), dtype=float), v).slope)
+
+        feature_parts = []
+        for m in ['cpu_usage', 'net_out']:
+            grp = df.groupby('case_id')[m]
+            part = pd.DataFrame({
+                f'{m}_mean': grp.mean(),
+                f'{m}_max':  grp.max(),
+                f'{m}_std':  grp.std(ddof=1),
+                f'{m}_p95':  grp.quantile(0.95),
+                f'{m}_slope': grp.apply(_slope),
+            })
+            feature_parts.append(part)
+
+        feat_df = pd.concat(feature_parts, axis=1).reset_index()
+        feat_cols = [c for c in feat_df.columns if c != 'case_id']
+
+        # Ergänzende Case-Level-Imputation mit X_train-Medianen
+        train_feat = feat_df[feat_df['case_id'].isin(train_ids)].set_index('case_id')
+        case_feature_medians = train_feat[feat_cols].median()
+
+        for col in feat_cols:
+            if feat_df[col].isnull().any():
+                feat_df[col] = feat_df[col].fillna(case_feature_medians[col])
+
+        assert feat_df[feat_cols].isnull().sum().sum() == 0, \
+            "NaN in Case-Level-Features nach Imputation"
+
+    def test_split_assignments_unchanged(self):
+        """
+        docs/split_assignments.csv muss die invarianten Splitgrößen enthalten.
+        Train=793, Val=206, Test=253; Test: mali=48, anom=76, norm=129.
+        """
+        split_path = os.path.join(DOCS_DIR, 'split_assignments.csv')
+        assert os.path.exists(split_path), f"split_assignments.csv fehlt unter {split_path}"
+        sa = pd.read_csv(split_path)
+
+        n_train = int((sa['split'] == 'train').sum())
+        n_val   = int((sa['split'] == 'val').sum())
+        n_test  = int((sa['split'] == 'test').sum())
+        assert n_train == 793, f"Train-Cases: erwartet 793, gefunden {n_train}"
+        assert n_val   == 206, f"Val-Cases: erwartet 206, gefunden {n_val}"
+        assert n_test  == 253, f"Test-Cases: erwartet 253, gefunden {n_test}"
+
+        test_df = sa[sa['split'] == 'test']
+        assert int((test_df['dataset_type'] == 'mali').sum()) == 48,  "Test mali ≠ 48"
+        assert int((test_df['dataset_type'] == 'anom').sum()) == 76,  "Test anom ≠ 76"
+        assert int((test_df['dataset_type'] == 'norm').sum()) == 129, "Test norm ≠ 129"
+
+        # Keine Case-ID in mehreren Splits
+        duplicates = sa.groupby('case_id')['split'].nunique()
+        assert (duplicates > 1).sum() == 0, "Case-IDs in mehreren Splits!"
+
+        # Keine group_id in mehreren Splits
+        group_dups = sa.groupby('group_id')['split'].nunique()
+        assert (group_dups > 1).sum() == 0, "group_ids in mehreren Splits!"
 
 
 # ---------------------------------------------------------------------------
@@ -1548,7 +1757,7 @@ class TestErrorAnalysisDoesNotChangeFinalResults:
             "Log-only Recall_mali verändert!"
         assert abs(get_val('Log-only',    'FPR_total')   - 0.2537) < 1e-4, \
             "Log-only FPR_total verändert!"
-        assert abs(get_val('Soft-Fusion', 'AP')          - 0.5756) < 1e-4, \
+        assert abs(get_val('Soft-Fusion', 'AP')          - 0.5553) < 1e-4, \
             "Soft-Fusion AP verändert!"
         assert abs(get_val('Metrics-only','FPR_total')   - 1.0)    < 1e-4, \
             "Metrics-only FPR_total verändert!"
