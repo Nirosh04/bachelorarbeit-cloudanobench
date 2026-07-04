@@ -29,7 +29,7 @@ Der Datensatz umfasst drei inhaltlich distinkte Typen: \emph{mali} (maliciously 
   \end{tabular}
 \end{table}
 
-Tabelle~\ref{tab:datenbasis} fasst die Datenbasis zusammen. Lediglich eine einzige Zeile in mali wurde beim Bereinigungsschritt entfernt (0{,}01~\%), was die Datenqualität als insgesamt hoch ausweist. Allen 1\,252 Cases ist genau eine Log-Datei zugeordnet; kein Fall weist eine fehlende Log-Datei auf. Der Datensatz deckt insgesamt 45 verschiedene Szenarien ab~\cite{zou2025cloudanobench}.
+Tabelle~\ref{tab:datenbasis} fasst die Datenbasis zusammen. Lediglich eine einzige Zeile in mali wurde beim Bereinigungsschritt entfernt (0{,}01~\%), was die Datenqualität als insgesamt hoch ausweist. Allen 1\,252 Cases ist genau eine Log-Datei zugeordnet; kein Fall weist eine fehlende Log-Datei auf. In der für diese Arbeit verarbeiteten öffentlichen Hugging-Face-Version liegen 45~Gruppen aus \texttt{dataset\_type} und \texttt{scenario\_id} vor: 17~anom-, 12~mali- und 16~norm-Gruppen~\cite{zou2025cloudanobench}.
 
 \subsection{Datenqualität und Preprocessing}
 
@@ -324,7 +324,7 @@ Tabelle~\ref{tab:sensitivity} zeigt das zentrale Ergebnis: Bei allen vier Recall
 
 \subsection{Fusion-Eingaben auf Case-Ebene}
 
-Beide Komponenten liefern direkt Case-Level-Scores. Die Metrik-Komponente (Abschnitt~\ref{sec:baseline}) gibt pro Case einen Wahrscheinlichkeitswert $\hat{p}_{\text{metric}}$ aus, der mit dem Validierungsschwellenwert von~0{,}0256 in einen binären \texttt{metric\_trigger} umgewandelt wird. Die Log-Komponente (Abschnitt~\ref{sec:log}) gibt pro Case einen Log-Score $\hat{p}_{\text{log}}$ aus, der mit dem Validierungsschwellenwert von~0{,}164 in einen binären \texttt{log\_trigger} umgewandelt wird. Ein Row-Level-Aggregationsschritt ist nicht erforderlich, da das Metrik-Modell direkt auf Case-Level-Aggregaten trainiert wurde.
+Beide Komponenten liefern direkt Case-Level-Scores. Die Metrik-Komponente (Abschnitt~\ref{sec:baseline}) gibt pro Case einen Score $\hat{p}_{\text{metric}}$ aus, der mit dem Validierungsschwellenwert von~0{,}0256 in einen binären \texttt{metric\_trigger} umgewandelt wird. Die Log-Komponente (Abschnitt~\ref{sec:log}) gibt pro Case einen Log-Score $\hat{p}_{\text{log}}$ aus, der mit dem Validierungsschwellenwert von~0{,}164 in einen binären \texttt{log\_trigger} umgewandelt wird. Ein Row-Level-Aggregationsschritt ist nicht erforderlich, da das Metrik-Modell direkt auf Case-Level-Aggregaten trainiert wurde.
 
 Im Testset von 253~Cases ergibt die metrische Klassifikation folgende Verteilung:
 
@@ -349,7 +349,7 @@ Das AND-Gate setzt einen Alert nur dann, wenn \emph{beide} Komponenten positiv e
 \[
   s_{\text{fusion}} = \hat{p}_{\text{metric}} \times \hat{p}_{\text{log}}
 \]
-Der Soft Score ist das Produkt der metrischen Case-Wahrscheinlichkeit und der log-basierten Wahrscheinlichkeit (vgl.~\cite{kittler1998combining}). Da beide Faktoren im Intervall $[0,\,1]$ liegen, gilt dies auch für $s_{\text{fusion}}$. Auf Basis dieses Scores kann eine vollständige PR-Kurve berechnet werden.
+Der Soft Score ist das Produkt des metrischen Scores und des log-basierten Scores (vgl.~\cite{kittler1998combining}). Da beide Faktoren im Intervall $[0,\,1]$ liegen, gilt dies auch für $s_{\text{fusion}}$. Auf Basis dieses Scores kann eine vollständige PR-Kurve berechnet werden.
 
 \subsection{Ablation-Studie}
 \label{sec:ablation}
@@ -384,7 +384,7 @@ Tabelle~\ref{tab:ablation} stellt alle vier Systemvarianten auf Case-Ebene gegen
 \begin{figure}[htb]
   \centering
   \includegraphics[width=0.82\textwidth]{../docs/fpr_comparison}
-  \caption{Vergleich der False-Positive-Rate zwischen Metrik-Baseline, Log-Komponente und Fusion, aufgeschlüsselt nach Datensatztyp (gesamt, anom, norm).}
+  \caption{Vergleich von $\mathrm{FPR}_{\mathrm{anom}}$ und $\mathrm{FPR}_{\mathrm{norm}}$ zwischen Metrik-Baseline, Log-Komponente und den beiden Fusionsvarianten (Case-Ebene, $n=253$).}
   \label{fig:fpr_comp}
 \end{figure}
 
@@ -430,7 +430,7 @@ Tabelle~\ref{tab:mali_scenario_recall} zeigt die Recall-Aufschlüsselung nach ma
     \textbf{Szenario} & \textbf{Name} & \textbf{n} & \textbf{TP} & \textbf{FN} & \textbf{Recall} \\
     \hline
     \texttt{mali/scenario\_6} & Rootkit / Backdoor & 24 & 21 & 3 & 0{,}8750 \\
-    \texttt{mali/scenario\_7} & --                 & 24 & 24 & 0 & 1{,}0000 \\
+    \texttt{mali/scenario\_7} & Brute-force / Credential Stuffing Attack & 24 & 24 & 0 & 1{,}0000 \\
     \hline
     \textbf{Gesamt} & & \textbf{48} & \textbf{45} & \textbf{3} & \textbf{0{,}9375} \\
     \hline
@@ -556,6 +556,8 @@ Mehrere methodische Einschränkungen begrenzen die Generalisierbarkeit der Befun
 
 \textbf{Kleine positive Testmenge.} Das Testset enthält lediglich 48~positive Cases (mali). Über das im Ausblick berichtete Wilson-Konfidenzintervall für den Recall hinaus wurden keine Konfidenzintervalle für die übrigen Metriken berechnet; die Punktschätzungen der FPR und des Recalls sind daher mit entsprechender Vorsicht zu interpretieren.
 
+\textbf{Begrenzte szenariospezifische Testabdeckung der mali-Klasse.} Der Testsplit enthält lediglich zwei malicious Szenarien (\texttt{mali/scenario\_6} und \texttt{mali/scenario\_7}). Der berichtete malicious Recall von~45/48 ist daher ein Befund auf diesem festen, scenario-aware Holdout-Split und darf nicht als empirische Abdeckung aller zwölf malicious Szenarien im Datensatz interpretiert werden. Der scenario-aware Split bleibt methodisch korrekt; die Einschränkung betrifft allein die externe Breite der Recall-Aussage.
+
 \textbf{Synthetischer Datensatz.} CloudAnoBench ist ein synthetisch generierter Datensatz und kein aufgezeichneter Produktions-Traffic. Ob die gelernten Textmuster auf andere Cloud-Umgebungen, andere Log-Formate oder reale Angriffe übertragbar sind, ist durch diese Arbeit nicht untersucht. Arp~et~al.~\cite{arp2022dos} weisen allgemein darauf hin, dass die Übertragbarkeit von im Labor evaluierten ML-Sicherheitsmodellen auf reale Einsatzumgebungen systematisch überschätzt werden kann.
 
 \textbf{Einheitliche Case-Level-Evaluation.} In der finalen Pipeline werden Metrik-Baseline, Log-Komponente und Fusion auf derselben Granularität evaluiert: eine Zeile pro Case. Dadurch sind Recall, Precision, F1, AP sowie FPR$_{\text{total}}$, FPR$_{\text{anom}}$ und FPR$_{\text{norm}}$ direkt vergleichbar. Die Aussagekraft bleibt dennoch durch den einzelnen Holdout-Split begrenzt; insbesondere beruhen die Recall-Werte im Testset auf 48 positiven mali-Cases.
@@ -566,7 +568,7 @@ Mehrere methodische Einschränkungen begrenzen die Generalisierbarkeit der Befun
 
 \textbf{Prototypischer Implementierungscharakter.} Die gesamte Pipeline ist in Jupyter Notebooks implementiert und als Forschungsprototyp zu verstehen. Es existiert keine paketierte, produktionsreife Software-Implementierung.
 
-\textbf{Keine Einzelfallanalyse der norm-Cases.} Die Evaluation weist die FPR für norm-Cases (planmäßiger Betrieb, darunter Backup-Vorgänge und Batch-Jobs) separat aus. Für die beste Variante (Log-only) beträgt FPR\textsubscript{norm}~= 0{,}2636 (34~von~129~Cases). Eine qualitative Analyse der individuellen falsch positiv klassifizierten norm-Cases~--- etwa hinsichtlich gemeinsamer Log-Muster oder Szenariotypen~--- wurde nicht durchgeführt. Die Zwischenergebnisse aller 253~Test-Cases, einschließlich metrischer und log-basierter Scores, sind in \texttt{docs/fusion\_cases.csv} dokumentiert und stehen für Anschlussanalysen bereit.
+\textbf{Keine tiefe manuelle Log-Inspektion einzelner norm-Cases.} Die Evaluation weist die FPR für norm-Cases (planmäßiger Betrieb, darunter Backup-Vorgänge und Batch-Jobs) separat aus. Für die beste Variante (Log-only) beträgt FPR\textsubscript{norm}~= 0{,}2636 (34~von~129~Cases). Eine tiefe manuelle Log-Inspektion einzelner falsch positiv klassifizierter norm-Cases wurde nicht durchgeführt. Die Zwischenergebnisse aller 253~Test-Cases, einschließlich metrischer und log-basierter Scores, sind in \texttt{docs/fusion\_cases.csv} dokumentiert und stehen für Anschlussanalysen bereit.
 \end{sloppypar}
 
 \subsection{Skalierbarkeit als konzeptuelle Einordnung}

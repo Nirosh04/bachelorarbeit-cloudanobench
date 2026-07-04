@@ -95,8 +95,11 @@ Die vorliegende Arbeit leistet die folgenden konkreten Beiträge:
   \item \textbf{Reproduzierbare Case-Level-Pipeline auf CloudAnoBench.} Es wird eine
     in Notebooks dokumentierte, reproduzierbare Pipeline entwickelt, die alle
     Phasen~--- Datenaufbereitung, Case-Level-Feature-Engineering, Modelltraining,
-    Fusion und Evaluation~--- auf CloudAnoBench umsetzt. Alle Ergebnisse sind durch
-    52~Unit-Tests in 12~Testklassen reproduzierbar und nachvollziehbar. Der finale
+    Fusion und Evaluation~--- auf CloudAnoBench umsetzt. Die 52~Unit-Tests in
+    12~Testklassen sichern zentrale Teile der Implementierungslogik ab;
+    die Reproduzierbarkeit wird zusätzlich durch fixierte Seeds, gespeicherte
+    Split-Zuordnungen, die dokumentierte Ausführungsreihenfolge und die
+    spezifizierte Umgebung unterstützt. Der finale
     Testsplit wird mit \texttt{random\_state=42} fixiert; der interne Validierungsanteil
     wird ohne Zugriff auf das Testset über einen festen Seed aus einer vordefinierten
     Kandidatenliste gewählt.
@@ -144,13 +147,16 @@ Behandelt werden Cloud-Anoma\-lie\-erkennung, unbalancierte Klassifikation und
 Precision-Recall-Metriken, XGBoost, TF-IDF, Data Leakage und gruppenbasierte
 Validierung sowie Klassifikatorfusion und Case-Level-Evaluation.
 
-Abschnitt~\ref{sec:data_preparation} beschreibt die Pipeline in vier Phasen: Datenaufbereitung und Leakage-Vermeidung,
-metrische Baseline, log-basierte Verifikation sowie hybride Fusion und Ablation.
-Die Ergebnisse werden durch Tabellen und Abbildungen dokumentiert; unerwartete
-Befunde~--- insbesondere die AND-Gate-Degeneration~--- werden als eigenständige
-Abschnitte behandelt.
+Abschnitt~\ref{sec:data_preparation} beschreibt CloudAnoBench sowie die Daten\-aufbereitung
+und leakage-sichere Split-Strategie. Abschnitt~4 stellt die metrische Baseline
+(XGBoost auf aggregierten Case-Level-Features) vor; Abschnitt~5 beschreibt die
+log-basierte Verifikationskomponente (TF-IDF und logistische Regression).
+Abschnitt~6 präsentiert die hybride Fusion und die Ablation-Studie einschließlich
+der AND-Gate-Degeneration sowie der szenarioaufgelösten Fehleranalyse. Die
+Ergebnisse werden durch Tabellen und Abbildungen dokumentiert.
 \end{sloppypar}
 
-Abschnitt~4 diskutiert die Ergebnisse im Hinblick auf die Forschungsfrage,
-bewertet die Rolle der einzelnen Komponenten, benennt die methodischen Limitationen
-der Arbeit und gibt einen Ausblick auf mögliche Erweiterungen.
+Abschnitt~7 diskutiert die Ergebnisse im Hinblick auf die Forschungsfrage,
+bewertet die Rolle der einzelnen Komponenten und benennt die methodischen
+Limitationen der Arbeit. Abschnitt~8 fasst die Befunde zusammen und gibt einen
+Ausblick auf mögliche Erweiterungen.

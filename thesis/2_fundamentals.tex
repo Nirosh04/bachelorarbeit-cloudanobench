@@ -141,8 +141,10 @@ Auf der TF-IDF-Matrix wird eine logistische Regression trainiert. Lineare Modell
 auf sparse hochdimensionalen Textrepräsentationen sind für diese Problemklasse
 eine etablierte Wahl; umgesetzt wird der Klassifikator in dieser Arbeit mit
 scikit-learn~\cite{pedregosa2011scikit}. Die logistische Regression
-liefert Wahrscheinlichkeitsschätzungen, die in der nachgelagerten Fusionsstufe
-direkt weiterverwendet werden.
+liefert Scores, die in der nachgelagerten Fusionsstufe
+direkt weiterverwendet werden. Eine explizite Wahrscheinlichkeitskalibrierung
+(z.\,B. Platt Scaling) wurde nicht durchgeführt; die Ausgaben werden daher als
+Modellscores interpretiert.
 
 Die Entscheidung für TF-IDF und logistische Regression folgt dem Prinzip einer
 interpretierbaren und effizient trainierbaren Baseline. Fortgeschrittenere Ansätze zur Log-Analyse~--- etwa struktur-bewusste
@@ -194,7 +196,7 @@ asymptotisch äquivalent sind.
 
 \begin{sloppypar}
 In dieser Arbeit wird die Fusionsentscheidung direkt auf Case-Ebene getroffen.
-Beide Komponenten liefern pro Case~$c$ einen Wahrscheinlichkeitswert:
+Beide Komponenten liefern pro Case~$c$ einen Score:
 $\hat{p}_{\text{metric}}(c)$ aus dem metrischen XGBoost-Klassifikator, der auf
 25~Case-Level-Aggregaten der fünf universellen Systemmetriken trainiert wird
 (je Metrik: Mittelwert, Maximum, Standardabweichung, 95.~Perzentil und linearer
