@@ -488,11 +488,11 @@ Diese Degeneration ist kein Implementierungsfehler, sondern ein direktes Ergebni
 
 \subsection{Qualitätssicherung und Reproduzierbarkeit}
 
-Die Kernlogiken der Pipeline werden durch 58~Unit-Tests in 13~Klassen abgesichert (\texttt{test\_pipeline.py} im Verzeichnis \texttt{tests/}, pytest-Framework):
+Die Kernlogiken der Pipeline werden durch 67~automatisierte Tests in 14~Klassen abgesichert (\texttt{test\_pipeline.py} im Verzeichnis \texttt{tests/}, pytest-Framework):
 
 \begin{sloppypar}
 \begin{enumerate}
-  \item \textbf{Canonical Matrix / Preprocessing} (\texttt{TestBuildCanonicalMatrix}, 4~Tests): Prüft die korrekte Behandlung fehlender Spalten, die Erhaltung von \texttt{NaN} vor dem Split, die vollständige NaN-Bereinigung nach evaluationsrelevanter Imputation sowie die Koerzion von quotenbehafteten Zeichenketten.
+  \item \textbf{Canonical Matrix / Preprocessing} (\texttt{TestBuildCanonicalMatrix}, 4~Tests): Prüft die korrekte Behandlung fehlender Spalten, die Erhaltung von \texttt{NaN} vor dem Split, die vollständige NaN-Bereinigung nach evaluationsrelevanter Imputation sowie die Konvertierung von mit Anführungszeichen versehenen Zeichenketten.
 
   \item \textbf{Zeilen-Imputation} (\texttt{TestRowLevelImputation}, 6~Tests): Verifiziert, dass keine Medianimputation vor dem Split erfolgt, Imputationsmediane ausschließlich aus Trainingszeilen stammen, derselbe Median je Feature auf alle \texttt{dataset\_type}-Werte und Splits angewendet wird und die finalen 25~Case-Level-Features keine \texttt{NaN} enthalten.
 
@@ -517,10 +517,24 @@ Die Kernlogiken der Pipeline werden durch 58~Unit-Tests in 13~Klassen abgesicher
   \item \textbf{False-Positive-Szenario-Analyse} (\texttt{TestFalsePositiveByScenario}, 5~Tests): Verifiziert die szenariospezifische FP-Aggregation, die Konsistenz der FPR-Berechnung und die korrekte Identifikation der Top-Szenarien (\texttt{norm/scenario\_8}, \texttt{anom/scenario\_17}).
 
   \item \textbf{Fehleranalyse ändert keine Hauptergebnisse} (\texttt{TestErrorAnalysisDoesNotChangeFinalResults}, 1~Test): Stellt sicher, dass die diagnostische Fehleranalyse keine Modelle neu trainiert, keine Thresholds verändert und keine finalen Hauptmetriken beeinflusst.
+
+  \item \textbf{Fresh-run-Determinismus} (\texttt{TestFreshRunSplitDeterminism}, 9~Tests): Verifiziert, dass die Split-Erzeugung keine bestehende \texttt{split\_assignments.csv} voraussetzt, gleiche Seeds bit-identische Zuordnungen liefern, alle drei Splits auf Case- und Gruppenebene disjunkt sind, Zeilenmediane ausschließlich aus Trainingszeilen stammen und der kanonische Split deterministisch reproduzierbar ist.
 \end{enumerate}
 \end{sloppypar}
 
-Vollständige Reproduzierbarkeit wird durch fixierte Zufallsseeds sichergestellt: Der finale Testsplit verwendet \texttt{random\_state=42}; der interne Validierungsanteil wird ohne Zugriff auf das Testset über Seed~0 aus einer vordefinierten Kandidatenliste gewählt, sodass ausreichend positive Validation-Cases enthalten sind. Das XGBoost-Training verwendet ebenfalls \texttt{random\_state=42}. Die Datei \texttt{docs/fusion\_cases.csv} enthält alle 253~Test-Cases mit ihren Zwischen-Scores (\texttt{metric\_score}, \texttt{log\_score}, \texttt{metric\_trigger}, \texttt{log\_trigger}, \texttt{and\_trigger}, \texttt{score\_fusion} und \texttt{soft\_fusion\_trigger}) als nachvollziehbarer Audit-Trail.
+\begin{sloppypar}
+Die Reproduzierbarkeit wird durch fixierte Zufallsseeds, gespeicherte Split-Zuordnungen,
+eine dokumentierte Ausführungsreihenfolge, eine spezifizierte Umgebung, versionierte
+Ergebnisartefakte und den finalen Repository-Commit unterstützt: Der finale Testsplit
+verwendet \texttt{random\_state=42}; der interne Validierungsanteil wird ohne Zugriff
+auf das Testset über Seed~0 aus einer vordefinierten Kandidatenliste gewählt, sodass
+ausreichend positive Validation-Cases enthalten sind. Das XGBoost-Training verwendet
+ebenfalls \texttt{random\_state=42}. Die Datei \texttt{docs/fusion\_cases.csv} enthält
+alle 253~Test-Cases mit ihren Zwischen-Scores (\texttt{metric\_score},
+\texttt{log\_score}, \texttt{metric\_trigger}, \texttt{log\_trigger},
+\texttt{and\_trigger}, \texttt{score\_fusion} und \texttt{soft\_fusion\_trigger}) als
+nachvollziehbarer Audit-Trail.
+\end{sloppypar}
 
 % ---------------------------------------------------------------------------
 \section{Diskussion und Limitationen}

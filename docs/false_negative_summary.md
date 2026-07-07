@@ -31,10 +31,10 @@
 
 ## Fazit
 
-Die Threshold-Sensitivity-Analyse (NB03) belegt bereits, dass kein validierungsbasierter
-Threshold den Test-Recall auf > 0,9375 hebt: Die drei FN-Cases liegen unterhalb jedes
-auf dem Validierungsset bestimmbaren Thresholds. Die Scores dieser Cases liegen im
-niedrigen Bereich — das Modell hat für diese Cases keine ausreichend starken
+Am ausschließlich auf dem Validierungssplit bestimmten Operating-Point beträgt
+der Recall auf dem festen Testsplit 0,9375. Eine nachträgliche Optimierung des
+Thresholds anhand des Testsets wurde nicht durchgeführt. Die Scores der drei FN-Cases
+liegen im niedrigen Bereich — das Modell hat für diese Cases keine ausreichend starken
 semantischen Muster im normalisierten Log-Text gefunden.
 
 **Methodischer Hinweis:** Diese Analyse ist rein deskriptiv. Es wurde keine

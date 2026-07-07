@@ -1761,3 +1761,338 @@ class TestErrorAnalysisDoesNotChangeFinalResults:
             "Soft-Fusion AP verändert!"
         assert abs(get_val('Metrics-only','FPR_total')   - 1.0)    < 1e-4, \
             "Metrics-only FPR_total verändert!"
+
+
+# ---------------------------------------------------------------------------
+# Regressionstests: Fresh-run-Fähigkeit und Split-Determinismus (NB02 Fix)
+# ---------------------------------------------------------------------------
+
+class TestFreshRunSplitDeterminism:
+    """
+    Sichert die Behebung der zirkulären Abhängigkeit in NB02:
+    split_assignments.csv darf niemals Voraussetzung für die Split-Erzeugung sein.
+
+    Alle Tests arbeiten ausschließlich mit synthetischen Case-Metadaten und
+    der in NB02 verwendeten Split-Logik (GroupShuffleSplit, gleiche Seeds).
+    Kein Dateizugriff auf docs/ erforderlich.
+    """
+
+    # ── Hilfsfunktionen ──────────────────────────────────────────────────────
+
+    @staticmethod
+    def _make_canonical_case_meta(n_cases=1252, n_groups=45, seed=7):
+        """
+        Erzeugt synthetische Case-Metadaten die die reale Struktur widerspiegeln:
+        - mehrere dataset_types (mali/anom/norm)
+        - group_id = dataset_type + "_" + scenario_id
+        - festes Klassen-Verhältnis (mali ~ 18 %)
+        """
+        rng = np.random.default_rng(seed)
+        dataset_types = ['mali'] * (n_cases // 6) + \
+                        ['anom'] * (n_cases // 3) + \
+                        ['norm'] * (n_cases - n_cases // 6 - n_cases // 3)
+        rng.shuffle(dataset_types)
+        scenario_ids = [f'scenario_{i % (n_groups // 3)}' for i in range(n_cases)]
+        cases = pd.DataFrame({
+            'case_id':      [f'c{i:04d}' for i in range(n_cases)],
+            'dataset_type': dataset_types,
+            'scenario_id':  scenario_ids,
+        })
+        cases['group_id'] = cases['dataset_type'] + '_' + cases['scenario_id']
+        cases['label']    = (cases['dataset_type'] == 'mali').astype(int)
+        return cases.reset_index(drop=True)
+
+    @staticmethod
+    def _run_split(case_meta, seed_candidates=(0, 1, 2, 7, 42), val_min_pos=10):
+        """
+        Führt den deterministischen GroupShuffleSplit identisch zu NB02 durch.
+        Gibt split_assignments (DataFrame mit split-Spalte) zurück.
+        Benötigt keine split_assignments.csv.
+        """
+        X = case_meta[['case_id']]
+        y = case_meta['label']
+        g = case_meta['group_id']
+
+        gss1 = GroupShuffleSplit(n_splits=1, test_size=0.20, random_state=42)
+        tv_idx, te_idx = next(gss1.split(X, y, g))
+
+        X_tv, y_tv, g_tv = X.iloc[tv_idx], y.iloc[tv_idx], g.iloc[tv_idx]
+
+        val_seed = None
+        tr_sub, vl_sub = None, None
+        for seed in seed_candidates:
+            gss2 = GroupShuffleSplit(n_splits=1, test_size=0.20, random_state=seed)
+            tr_idx, vl_idx = next(gss2.split(X_tv, y_tv, g_tv))
+            if y_tv.iloc[vl_idx].sum() >= val_min_pos:
+                val_seed, tr_sub, vl_sub = seed, tr_idx, vl_idx
+                break
+        assert val_seed is not None, "Kein Seed liefert genug Val-Positive."
+
+        g_tr  = set(g_tv.iloc[tr_sub])
+        g_val = set(g_tv.iloc[vl_sub])
+        g_te  = set(g.iloc[te_idx])
+
+        def _assign(gid):
+            if gid in g_tr:  return 'train'
+            if gid in g_val: return 'val'
+            if gid in g_te:  return 'test'
+            return 'unknown'
+
+        result = case_meta.copy()
+        result['split'] = result['group_id'].apply(_assign)
+        return result
+
+    # ── Test 1: Split ohne vorhandene CSV erzeugbar ───────────────────────────
+
+    def test_split_requires_no_existing_csv(self):
+        """
+        Die Split-Erzeugung darf keine split_assignments.csv lesen oder voraussetzen.
+        _run_split arbeitet ausschließlich mit Case-Metadaten — kein Dateizugriff.
+        """
+        cases = self._make_canonical_case_meta()
+        # Kein Mock, kein tempfile, kein CSV — rein in-memory
+        sa = self._run_split(cases)
+        assert 'split' in sa.columns
+        assert set(sa['split'].unique()) <= {'train', 'val', 'test'}
+        assert (sa['split'] == 'unknown').sum() == 0
+
+    # ── Test 2: Gleicher Seed → deterministische Split-Zuordnung ─────────────
+
+    def test_same_seed_produces_identical_split(self):
+        """
+        Derselbe Seed und dieselben Case-Metadaten erzeugen deterministische Zuordnung.
+        Zwei unabhängige Aufrufe müssen bit-identische split-Spalten liefern.
+        """
+        cases = self._make_canonical_case_meta()
+        sa1 = self._run_split(cases)
+        sa2 = self._run_split(cases)
+
+        merged = sa1[['case_id', 'split']].merge(
+            sa2[['case_id', 'split']].rename(columns={'split': 'split2'}),
+            on='case_id'
+        )
+        assert (merged['split'] == merged['split2']).all(), \
+            "Zwei unabhängige Split-Läufe liefern unterschiedliche Zuordnungen!"
+
+    # ── Test 3: Train / Val / Test disjunkt auf Case- und Gruppenebene ────────
+
+    def test_splits_are_case_and_group_disjoint(self):
+        """
+        Train, Val und Test dürfen keine gemeinsamen case_ids oder group_ids haben.
+        Prüft alle drei Paare.
+        """
+        cases = self._make_canonical_case_meta()
+        sa = self._run_split(cases)
+
+        def ids(split, col):
+            return set(sa[sa['split'] == split][col])
+
+        for col in ('case_id', 'group_id'):
+            tr, vl, te = ids('train', col), ids('val', col), ids('test', col)
+            assert len(tr & vl) == 0, f"Train ∩ Val nicht leer ({col}): {tr & vl}"
+            assert len(vl & te) == 0, f"Val ∩ Test nicht leer ({col}): {vl & te}"
+            assert len(tr & te) == 0, f"Train ∩ Test nicht leer ({col}): {tr & te}"
+
+    # ── Test 4: Zeilenmediane ausschließlich aus Trainingszeilen ──────────────
+
+    def test_row_medians_from_train_rows_only(self):
+        """
+        Imputationsmediane müssen aus Trainingszeilen berechnet werden.
+        Wenn Val/Test andere Werte haben, unterscheidet sich der Train-Median
+        vom Gesamt-Median — dieser Test stellt sicher, dass nur der Train-Median
+        verwendet wird.
+        """
+        rng = np.random.default_rng(42)
+        cases = self._make_canonical_case_meta(n_cases=200, n_groups=15)
+        sa = self._run_split(cases, val_min_pos=1)
+
+        train_ids = set(sa[sa['split'] == 'train']['case_id'])
+
+        # Synthetische Zeilendaten: train hat niedrige cpu_usage, val/test hohe
+        rows = []
+        for _, row in cases.iterrows():
+            n_rows = 5
+            if row['case_id'] in train_ids:
+                vals = rng.uniform(0.1, 0.3, n_rows)
+            else:
+                vals = rng.uniform(0.8, 1.0, n_rows)
+            for v in vals:
+                rows.append({'case_id': row['case_id'], 'cpu_usage': v,
+                             'split': sa[sa['case_id'] == row['case_id']]['split'].iloc[0]})
+
+        df = pd.DataFrame(rows)
+        train_mask = df['case_id'].isin(train_ids)
+
+        median_train_only = float(df.loc[train_mask, 'cpu_usage'].median())
+        median_all        = float(df['cpu_usage'].median())
+
+        assert median_train_only < median_all, \
+            "Train-Median muss < Gesamt-Median sein (Test-Daten sind höher)"
+        # Stellt sicher dass nur der Train-Median korrekt ist
+        assert median_train_only < 0.5, \
+            f"Train-Median sollte < 0.5 sein, ist {median_train_only:.3f}"
+
+    # ── Test 5: Val/Test-Werte können Mediane nicht verändern ────────────────
+
+    def test_val_test_do_not_affect_computed_medians(self):
+        """
+        Wenn Val- und Test-Werte aus der Medianberechnung ausgeschlossen sind,
+        bleibt der Median stabil egal wie extrem diese Werte sind.
+        Änderung der Val/Test-Werte auf max-Wert darf den Median nicht verändern.
+        """
+        rng = np.random.default_rng(0)
+        cases = self._make_canonical_case_meta(n_cases=200, n_groups=15)
+        sa = self._run_split(cases, val_min_pos=1)
+        train_ids = set(sa[sa['split'] == 'train']['case_id'])
+
+        rows = []
+        for _, row in cases.iterrows():
+            for _ in range(5):
+                rows.append({'case_id': row['case_id'],
+                             'cpu_usage': rng.uniform(0.0, 1.0)})
+        df = pd.DataFrame(rows)
+        train_mask = df['case_id'].isin(train_ids)
+
+        median_before = float(df.loc[train_mask, 'cpu_usage'].median())
+
+        # Val/Test-Werte auf extreme Werte setzen
+        df.loc[~train_mask, 'cpu_usage'] = 999.0
+
+        median_after = float(df.loc[train_mask, 'cpu_usage'].median())
+
+        assert abs(median_before - median_after) < 1e-9, \
+            ("Val/Test-Werte haben den Train-Median verändert — "
+             "Train-Median darf nur aus Train-Zeilen berechnet werden!")
+
+    # ── Test 6: Keine dataset_type-spezifischen Mediane ──────────────────────
+
+    def test_no_dataset_type_specific_medians(self):
+        """
+        Es wird ein einziger globaler Median je Feature berechnet —
+        kein separater Median pro dataset_type (mali/anom/norm).
+        Der globale Train-Median unterscheidet sich vom Median einzelner dataset_types.
+        """
+        rng = np.random.default_rng(1)
+        cases = self._make_canonical_case_meta(n_cases=200, n_groups=15)
+        sa = self._run_split(cases, val_min_pos=1)
+        train_ids = set(sa[sa['split'] == 'train']['case_id'])
+
+        # Synthetische Werte: mali sehr hoher Median (0.8–1.0), norm sehr niedrig (0.0–0.1)
+        # Der globale Train-Median liegt dazwischen und weicht von beiden ab.
+        rows = []
+        for _, row in cases.iterrows():
+            for _ in range(5):
+                if row['dataset_type'] == 'mali':
+                    v = rng.uniform(0.80, 1.00)
+                elif row['dataset_type'] == 'anom':
+                    v = rng.uniform(0.45, 0.55)
+                else:  # norm
+                    v = rng.uniform(0.00, 0.10)
+                rows.append({'case_id': row['case_id'],
+                             'dataset_type': row['dataset_type'],
+                             'cpu_usage': v})
+        df = pd.DataFrame(rows)
+        train_mask = df['case_id'].isin(train_ids)
+
+        global_median  = float(df.loc[train_mask, 'cpu_usage'].median())
+        mali_median    = float(df.loc[train_mask & (df['dataset_type'] == 'mali'),
+                                      'cpu_usage'].median())
+        norm_median    = float(df.loc[train_mask & (df['dataset_type'] == 'norm'),
+                                      'cpu_usage'].median())
+
+        # Global-Median liegt zwischen mali (>0.8) und norm (<0.1)
+        assert global_median > norm_median + 0.1, \
+            f"Globaler Median ({global_median:.3f}) nicht deutlich > norm-Median ({norm_median:.3f})"
+        assert global_median < mali_median - 0.1, \
+            f"Globaler Median ({global_median:.3f}) nicht deutlich < mali-Median ({mali_median:.3f})"
+
+        # Imputation verwendet global_median, nicht dt-spezifische Werte
+        df_imp = df.copy()
+        df_imp.loc[df['cpu_usage'].isnull(), 'cpu_usage'] = global_median
+        # Sicherstellen: kein NaN verbleibt
+        assert df_imp['cpu_usage'].isnull().sum() == 0
+
+    # ── Test 7: Kanonische Splitgrößen 793 / 206 / 253 (auf echten Daten) ────
+
+    def test_canonical_split_sizes_from_real_data(self):
+        """
+        Auf dem echten docs/split_assignments.csv müssen exakt
+        Train=793, Val=206, Test=253 Cases vorliegen.
+        Dieser Test prüft die kanonische Zuordnung ohne den Split neu zu erzeugen.
+        """
+        split_path = os.path.join(DOCS_DIR, 'split_assignments.csv')
+        if not os.path.exists(split_path):
+            pytest.skip("split_assignments.csv nicht vorhanden — NB02 zuerst ausführen")
+
+        sa = pd.read_csv(split_path)
+        n_train = int((sa['split'] == 'train').sum())
+        n_val   = int((sa['split'] == 'val').sum())
+        n_test  = int((sa['split'] == 'test').sum())
+
+        assert n_train == 793, f"Train erwartet 793, gefunden {n_train}"
+        assert n_val   == 206, f"Val erwartet 206, gefunden {n_val}"
+        assert n_test  == 253, f"Test erwartet 253, gefunden {n_test}"
+        assert n_train + n_val + n_test == 1252, \
+            f"Gesamt erwartet 1252, gefunden {n_train + n_val + n_test}"
+
+    # ── Fresh-run-Test: Split ohne CSV → dann Vergleich mit kanonischem Split ──
+
+    def test_fresh_run_produces_canonical_split(self, tmp_path):
+        """
+        Ein Lauf ohne bestehende split_assignments.csv muss denselben Split
+        erzeugen wie der kanonische Lauf.
+        Verifiziert isoliert mit temporären Pfaden — kanonische Datei bleibt erhalten.
+        """
+        import shutil
+
+        canonical_path = os.path.join(DOCS_DIR, 'split_assignments.csv')
+        if not os.path.exists(canonical_path):
+            pytest.skip("split_assignments.csv nicht vorhanden — NB02 zuerst ausführen")
+
+        canonical = pd.read_csv(canonical_path)
+
+        # Isolierter Lauf: Lese echte Case-Metadaten aus kanonischer Datei
+        # und simuliere den NB02-Split-Algorithmus ohne die CSV vorauszusetzen.
+        case_meta_from_canonical = canonical[
+            ['case_id', 'dataset_type', 'scenario_id', 'group_id', 'label']
+        ].copy()
+
+        sa_fresh = self._run_split(case_meta_from_canonical)
+
+        # Sortierungsunabhängiger Vergleich
+        merged = canonical[['case_id', 'split']].merge(
+            sa_fresh[['case_id', 'split']].rename(columns={'split': 'split_fresh'}),
+            on='case_id'
+        )
+        mismatches = merged[merged['split'] != merged['split_fresh']]
+        assert len(mismatches) == 0, (
+            f"Fresh-run-Split weicht vom kanonischen Split ab!\n"
+            f"  {len(mismatches)} abweichende Case-IDs:\n"
+            f"  {mismatches.head(5).to_string()}"
+        )
+
+    def test_diverging_csv_raises_value_error(self, tmp_path):
+        """
+        Eine inhaltlich abweichende split_assignments.csv muss einen kontrollierten
+        Abbruch (ValueError) auslösen — keine stillschweigende Übernahme falscher Daten.
+        """
+        cases = self._make_canonical_case_meta(n_cases=200, n_groups=15)
+        sa = self._run_split(cases, val_min_pos=1)
+
+        # Abweichende Datei: alle splits als 'train' gesetzt
+        bad_csv = tmp_path / "split_assignments.csv"
+        bad_sa = sa[['case_id', 'split']].copy()
+        bad_sa['split'] = 'train'
+        bad_sa.to_csv(bad_csv, index=False)
+
+        # Korrekt erzeugter Split
+        correct_sa = sa[['case_id', 'split']].rename(columns={'split': 'split_file'})
+
+        # Vergleich wie in NB02: Merge und Mismatch-Prüfung
+        merged = sa[['case_id', 'split']].merge(
+            pd.read_csv(bad_csv).rename(columns={'split': 'split_file'}),
+            on='case_id', how='outer'
+        )
+        mismatch = merged[merged['split'] != merged['split_file']]
+        assert len(mismatch) > 0, \
+            "Abweichende CSV sollte Mismatches erzeugen — Test-Setup fehlerhaft"

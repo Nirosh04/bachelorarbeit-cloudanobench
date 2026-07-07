@@ -8,7 +8,7 @@ Die zur Reproduktion relevanten Artefakte befinden sich im Repository: die fünf
 Jupyter-Notebooks (in dieser Reihenfolge auszuführen: \texttt{01\_data\_exploration},
 \texttt{02\_metric\_baseline}, \texttt{03\_log\_component}, \texttt{04\_fusion},
 \texttt{05\_error\_analysis}), die erzeugten Abbildungen und Artefakt-CSVs im
-Verzeichnis \texttt{docs/} sowie die 58~Unit-Tests in 13~Testklassen in
+Verzeichnis \texttt{docs/} sowie die 67~automatisierten Tests in 14~Testklassen in
 \texttt{tests/test\_pipeline.py}. Notebook~05 umfasst die Fehleranalyse: False
 Negatives, False Positives nach Szenario, malicious-Test-Szenario-Recall und
 Reproduzierbarkeitschecks.
@@ -216,7 +216,7 @@ zusätzliche Experimente oder Anforderungen, die sich an einer
 publikationsorientierten Forschungsarbeit orientierten und für den Rahmen einer
 Bachelorarbeit weder notwendig noch sinnvoll waren. Auch Ergebnisvergleiche
 wurden gelegentlich ungenau formuliert: Ein Vergleich zweier Systemvarianten
-wurde beispielsweise verfehlt, indem „zwei weniger" und „zwei zusätzliche False Positives" verwechselt wurden. Solche Fehler zeigen, dass KI-generierte Aussagen
+wurde beispielsweise verfehlt, indem „zwei weniger False Positives" und „zwei zusätzliche False Positives" verwechselt wurden. Solche Fehler zeigen, dass KI-generierte Aussagen
 über quantitative Ergebnisse zwingend gegen die tatsächlichen Artefakte geprüft
 werden müssen.
 \end{sloppypar}
@@ -225,7 +225,7 @@ Um diesen Risiken zu begegnen, setzte ich folgende Kontrollmechanismen konsequen
 keine KI-Zusammenfassungen. Quantitative Angaben prüfte ich stets gegen
 die kanonischen CSV-Artefakte, nicht gegen gerundete oder verbal
 zusammengefasste Berichte. Für Code- und Methodenprüfungen dienten Git-Diffs,
-die 58~Unit-Tests, die Notebook-Validierung sowie der \LaTeX{}/Biber-Build als
+die 67~automatisierten Tests, die Notebook-Validierung sowie der \LaTeX{}/Biber-Build als
 unabhängige Prüfinstanzen. Das Betreuerfeedback diente als wichtige externe
 Korrektur, insbesondere wenn Formulierungen zu stark oder methodisch nicht
 hinreichend präzise waren.

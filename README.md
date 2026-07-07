@@ -7,51 +7,87 @@ Diese Arbeit entwickelt und evaluiert eine zweistufige hybride Pipeline zur Redu
 ## Repository-Struktur
 
 ```
-notebooks/          Jupyter-Notebooks (Phase 1–5, in Reihenfolge ausführen)
-tests/              pytest-Suite (58 Unit-Tests, 13 Testklassen)
-docs/               Abbildungen und Audit-Artefakt (fusion_cases.csv)
+notebooks/          Jupyter-Notebooks (01–05, in Reihenfolge ausführen)
+tests/              pytest-Suite (67 automatisierte Tests, 14 Testklassen)
+docs/               Kanonische Ergebnisartefakte (Abbildungen und CSVs, versioniert)
 thesis/             LaTeX-Quellen und kompilierte PDF
 data/               Datensatzverzeichnis (nicht im Repo enthalten, s. u.)
-requirements.txt    Python-Abhängigkeiten
+requirements.txt    Python-Abhängigkeiten (Versionen fixiert)
 Dockerfile          Lokale Jupyter-Lab-Umgebung
 ```
 
-## Setup
+## Umgebung
+
+Python 3.12. Die Paketversionen sind in `requirements.txt` fixiert.
 
 ```bash
 python -m venv .venv
 # Windows:  .venv\Scripts\activate
 # Unix:     source .venv/bin/activate
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
+python -m pip check
 ```
+
+## Datenbezug
 
 > **Rohdaten:** Der CloudAnoBench-Datensatz ist nicht im Repository enthalten.
 > Er muss separat bezogen und in `data/` abgelegt werden, sodass
 > `data/mali_dataset/`, `data/anom_dataset/` und `data/norm_dataset/` vorhanden sind.
 > Quelle: <https://arxiv.org/abs/2508.01844>
 
-## Notebooks ausführen
+## Reproduzierbarkeit
 
-Die Notebooks müssen in dieser Reihenfolge ausgeführt werden:
+### A. Schnelle Validierung des versionierten Ergebnisstands
+
+Die kanonischen Ergebnisartefakte unter `docs/` sind im Repository versioniert.
+Nach dem Checkout können die Tests gegen diese Artefakte direkt ausgeführt werden:
+
+```bash
+pytest -p no:cacheprovider
+```
+
+Erwartet: 67 Tests, alle grün.
+
+### B. Vollständige Neuberechnung
+
+Für eine vollständige Neuberechnung sind die lokalen CloudAnoBench-Rohdaten erforderlich.
+Die Rohdaten werden nicht im Git-Repository versioniert; der Datenbezug muss anhand der
+bestehenden Projektdokumentation erfolgen.
+
+Die Notebooks müssen mit jeweils frischem Kernel in dieser Reihenfolge vollständig
+ausgeführt werden:
 
 ```
 01_data_exploration.ipynb   – Datenaufbereitung, kanonische Feature-Matrix, Parquet-Artefakte
-02_metric_baseline.ipynb    – XGBoost-Metrik-Baseline (Phase 2)
+02_metric_baseline.ipynb    – XGBoost-Metrik-Baseline (Phase 2); erzeugt den festen Split
+                              fresh-run-sicher, bevor die Train-only-Imputation erfolgt;
+                              Split-Zuordnungen werden unter docs/split_assignments.csv
+                              gespeichert; eine bestehende Split-Datei wird gegen den
+                              deterministisch reproduzierten Split geprüft
 03_log_component.ipynb      – TF-IDF + logistische Regression (Phase 3)
 04_fusion.ipynb             – AND-Gate / Soft-Fusion / Ablation (Phase 4)
 05_error_analysis.ipynb     – Fehleranalyse: False Negatives, False Positives nach Szenario,
                               malicious-Test-Szenario-Recall und Reproduzierbarkeitschecks
 ```
 
+Die Notebook-Ausführung erzeugt bzw. aktualisiert die kanonischen Artefakte unter `docs/`.
 Jedes Notebook setzt die Ausgaben des vorherigen voraus (`data/processed/` und `docs/`).
+
+Anschließend:
+
+```bash
+pytest -p no:cacheprovider
+```
 
 ## Tests
 
+67 automatisierte Tests sichern zentrale Implementierungs- und Konsistenzbedingungen ab.
+
 ```bash
-python -m pytest tests/ -v
+pytest -p no:cacheprovider
 ```
 
-Erwartet: 58 Tests, alle grün.
+Erwartet: 67 Tests, alle grün.
 
 ## Thesis kompilieren
 
@@ -94,6 +130,7 @@ und ist kein produktionsreifes Deployment.
 
 | Datei | Inhalt |
 |---|---|
+| `docs/split_assignments.csv` | Split-Zuordnungen (Train/Val/Test) für alle 1252 Cases |
 | `docs/fusion_cases.csv` | Audit-Trail: alle 253 Test-Cases mit Zwischen-Scores |
 | `docs/pr_curve_*.png` | Precision-Recall-Kurven |
 | `docs/fpr_comparison.png` | FPR-Vergleich aller Systemvarianten |
