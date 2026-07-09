@@ -1,4 +1,4 @@
-# False-Negative-Analyse: Log-only (Stand C)
+# False-Negative-Analyse: Log-only
 
 > Qualitative Fehleranalyse — keine neue Evaluation, keine Threshold-Änderung.
 

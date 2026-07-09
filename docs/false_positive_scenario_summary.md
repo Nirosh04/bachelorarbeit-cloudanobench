@@ -1,4 +1,4 @@
-# False-Positive-Analyse nach Szenario (Stand C)
+# False-Positive-Analyse nach Szenario
 
 > Qualitative Fehleranalyse — keine neue Evaluation, keine Threshold-Änderung.
 
