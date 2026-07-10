@@ -766,12 +766,12 @@ class TestThresholdSensitivity:
 
 
 # ---------------------------------------------------------------------------
-# Tests: Case-Level Metric Baseline (Stand C)
+# Tests: Case-Level Metric Baseline
 # ---------------------------------------------------------------------------
 
 class TestCaseLevelMetricBaseline:
     """
-    Prüft die Case-Level-Metrik-Baseline aus NB02 Stand C.
+    Prüft die Case-Level-Metrik-Baseline aus NB02.
 
     Alle Tests sind datei-unabhängig (kein docs/-Dateizugriff nötig) und
     testen Kernlogik inline — identisch zur NB02-Implementierung.
@@ -1058,7 +1058,7 @@ class TestCaseLevelMetricBaseline:
 
 
 # ---------------------------------------------------------------------------
-# Tests: Log-Normalisierung und Log-Komponente (Stand C)
+# Tests: Log-Normalisierung und Log-Komponente
 # ---------------------------------------------------------------------------
 
 def _normalize_log_text(text: str) -> str:
@@ -1108,7 +1108,7 @@ def _normalize_log_text(text: str) -> str:
 
 class TestLogNormalizationAndScores:
     """
-    Prüft Log-Normalisierung (NB03 Stand C) und Case-Level-Log-Score-Artefakte.
+    Prüft Log-Normalisierung (NB03) und Case-Level-Log-Score-Artefakte.
     Alle Tests verwenden synthetische Daten — kein CSV-Dateizugriff erforderlich.
     """
 
@@ -1320,13 +1320,13 @@ class TestLogNormalizationAndScores:
 
 
 # ---------------------------------------------------------------------------
-# Tests: Case-Level Fusion / Ablation (NB04 Stand C)
+# Tests: Case-Level Fusion / Ablation (NB04)
 # ---------------------------------------------------------------------------
 
 class TestCaseLevelFusion:
     """
     Prüft die Korrektheit der Fusion-Logik, Artefakt-Struktur und
-    Threshold-Herkunft für NB04 Stand C.
+    Threshold-Herkunft für NB04.
     Alle Tests arbeiten mit synthetischen Daten — kein CSV-Dateizugriff.
     """
 
@@ -1745,7 +1745,7 @@ class TestErrorAnalysisDoesNotChangeFinalResults:
         return pd.read_csv(path)
 
     def test_error_analysis_does_not_change_final_results(self):
-        """Kernzahlen in final_results_table.csv bleiben Stand-C-konform."""
+        """Kernzahlen in final_results_table.csv bleiben final artefaktkonform."""
         df = self._load_results()
 
         def get_val(model, col):
