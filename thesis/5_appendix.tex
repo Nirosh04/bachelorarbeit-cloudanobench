@@ -3,16 +3,14 @@
 
 \section{Anhang}
 
-\begin{sloppypar}
 Die zur Reproduktion relevanten Artefakte befinden sich im Repository: die fÃ¼nf
-Jupyter-Notebooks (in dieser Reihenfolge auszufÃ¼hren: \texttt{01\_data\_exploration},
-\texttt{02\_metric\_baseline}, \texttt{03\_log\_component}, \texttt{04\_fusion},
-\texttt{05\_error\_analysis}), die erzeugten Abbildungen und Artefakt-CSVs im
+Jupyter-Notebooks (in dieser Reihenfolge auszufÃ¼hren: \path{01_data_exploration},
+\path{02_metric_baseline}, \path{03_log_component}, \path{04_fusion},
+\path{05_error_analysis}), die erzeugten Abbildungen und Artefakt-CSVs im
 Verzeichnis \texttt{docs/} sowie die 67~automatisierten Tests in 14~Testklassen in
 \texttt{tests/test\_pipeline.py}. Notebook~05 umfasst die Fehleranalyse: False
 Negatives, False Positives nach Szenario, malicious-Test-Szenario-Recall und
 Reproduzierbarkeitschecks.
-\end{sloppypar}
 
 ErgÃ¤nzend liegt im Repository ein \texttt{Dockerfile} vor, das eine einfache
 Jupyter-Lab-Umgebung auf Basis von Python~3.12 mit den benÃ¶tigten AbhÃ¤ngigkeiten
@@ -24,16 +22,14 @@ gebaut und anschlieÃŸend mit
 \texttt{docker run -p 8888:8888 cloudanobench-thesis}
 gestartet werden.
 
-\begin{sloppypar}
 \paragraph{Quellcode und Reproduzierbarkeit.}
 Der Quellcode, die ausgefÃ¼hrten Notebooks, die automatisierten Tests und die
 kanonischen Ergebnisartefakte sind Ã¶ffentlich unter
 \url{https://github.com/Nirosh04/bachelorarbeit-cloudanobench} verfÃ¼gbar.
 Der fÃ¼r die in dieser Arbeit berichteten Ergebnisse verwendete
 reproduzierbare Code- und Ergebnisstand entspricht dem vollstÃ¤ndigen
-Git-Commit
-\texttt{ec815408374c075f064caf93f38fcb6c990cc1b0}.
-\end{sloppypar}
+Git-Commit\newline
+\texttt{17ab951fed539a84fa986c42edb05dffb11e4c7d}.
 
 \subsection{Dokumentation der KI-Nutzung}\label{sec:ki-nutzung}
 
@@ -219,18 +215,16 @@ wissenschaftlich prÃ¤ziser und angemessener ist. Die UnterstÃ¼tzung bei der
 systematischen PrÃ¼fung von Code und Artefakten erleichterte es, potenzielle
 Inkonsistenzen Ã¼berhaupt erst als prÃ¼fenswert zu identifizieren.
 
-\begin{sloppypar}
 Gleichzeitig wurden die Grenzen solcher Werkzeuge konkret erfahrbar.
-KI-VorschlÃ¤ge kÃ¶nnen fachlich falsch, zu weitgehend oder fÃ¼r den tatsÃ¤chlichen
+KI-Vor\-schlÃ¤ge kÃ¶nnen fachlich falsch, zu weitgehend oder fÃ¼r den tatsÃ¤chlichen
 Arbeitskontext unangemessen sein. FrÃ¼here VorschlÃ¤ge enthielten etwa Hinweise auf
 zusÃ¤tzliche Experimente oder Anforderungen, die sich an einer
 publikationsorientierten Forschungsarbeit orientierten und fÃ¼r den Rahmen einer
 Bachelorarbeit weder notwendig noch sinnvoll waren. Auch Ergebnisvergleiche
 wurden gelegentlich ungenau formuliert: Ein Vergleich zweier Systemvarianten
-wurde beispielsweise verfehlt, indem â€žzwei weniger False Positives" und â€žzwei zusÃ¤tzliche False Positives" verwechselt wurden. Solche Fehler zeigen, dass KI-generierte Aussagen
+wurde beispielsweise verfehlt, indem \enquote{zwei weniger False Positives} und \enquote{zwei zusÃ¤tzliche False Positives} verwechselt wurden. Solche Fehler zeigen, dass KI-generierte Aussagen
 Ã¼ber quantitative Ergebnisse zwingend gegen die tatsÃ¤chlichen Artefakte geprÃ¼ft
 werden mÃ¼ssen.
-\end{sloppypar}
 
 Um diesen Risiken zu begegnen, setzte ich folgende Kontrollmechanismen konsequent ein: FÃ¼r Literatur las und bewertete ich die Originalquellen und Ã¼bernahm
 keine KI-Zusammenfassungen. Quantitative Angaben prÃ¼fte ich stets gegen
@@ -247,5 +241,5 @@ Werkzeuge hat die Bedeutung eigener fachlicher Kontrolle nicht vermindert,
 sondern in gewisser Weise erhÃ¶ht: Da VorschlÃ¤ge plausibel klingen, aber dennoch
 falsch sein kÃ¶nnen, erfordert jeder Ã¼bernommene Vorschlag eine explizite
 Entscheidung und eine nachvollziehbare BegrÃ¼ndung. Die Verantwortung fÃ¼r den
-finalen Stand der Arbeit -- ihre Aussagen, Berechnungen, Methodik und
-Schlussfolgerungen -- lag zu jedem Zeitpunkt bei mir.
+finalen Stand der Arbeit~--- ihre Aussagen, Berechnungen, Methodik und
+Schlussfolgerungen~--- lag zu jedem Zeitpunkt bei mir.

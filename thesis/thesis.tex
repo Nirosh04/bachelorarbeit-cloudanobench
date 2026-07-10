@@ -58,15 +58,15 @@
     hohe Rate an Fehlalarmen (\emph{False Positives}), die Analysten belasten und
     die Reaktionsfähigkeit auf echte Sicherheitsvorfälle beeinträchtigen. Diese Arbeit
     untersucht auf dem CloudAnoBench-Datensatz, inwiefern Log-Kontext die
-    False-Positive-Rate einer metrics-basierten Detection reduzieren kann. Dazu wird
+    False-Positive-Rate einer metrikbasierten Detection-Pipeline reduzieren kann. Dazu wird
     eine reproduzierbare Case-Level-Pipeline entwickelt, die einen XGBoost-Klassifikator
     auf aggregierten Systemmetriken, eine log-basierte TF-IDF-Repräsentation mit
     logistischer Regression sowie zwei einfache Fusionsvarianten vergleicht.
     Die finale Evaluation erfolgt leakage-sicher mit einem scenario-aware
-    Train-Validation-Test-Split; Early Stopping und Threshold-Wahl werden ausschließlich
+    Train-/Validierungs-/Test-Split; Early Stopping und Threshold-Wahl werden ausschließlich
     auf dem Validierungsset vorgenommen, während das Testset nur der finalen Auswertung dient.
 
-    Die Ergebnisse zeigen, dass die metrics-basierte Baseline auf Case-Ebene zwar
+    Die Ergebnisse zeigen, dass die metrikbasierte Baseline auf Case-Ebene zwar
     alle Angriffs-Cases erkennt (Recall$_\text{mali}$ = 1{,}0000), aber zugleich alle
     negativen Test-Cases als positiv klassifiziert
     (FPR$_\text{total}$ = 1{,}0000). Die log-basierte Komponente liefert die beste

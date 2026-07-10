@@ -7,14 +7,12 @@
 \subsection{Motivation}
 % ---------------------------------------------------------------------------
 
-\begin{sloppypar}
 Automatisierte Anomalie-Erkennung ist ein zentrales Werkzeug im Betrieb großer
 Cloud-Infrastrukturen. Monitoring-Systeme werten kontinuierlich Systemmetriken aus
 und lösen bei auffälligen Abweichungen Alerts aus. In der Praxis führt dieser Ansatz
 jedoch zu einem hohen Aufkommen an Fehlalarmen (\emph{False Positives}):
 Betriebsschwankungen, reguläre Lastspitzen oder geplante Batch-Jobs erzeugen
 Metrikanomaliemuster, die denen echter Angriffe oder Systemfehler ähneln, ohne es zu sein.
-\end{sloppypar}
 
 Dieses Phänomen ist in der Literatur als \emph{Alert Fatigue} bekannt und stellt ein
 anerkanntes operatives Problem im Sicherheitsbetrieb dar. Es beeinträchtigt die
@@ -64,14 +62,12 @@ Ansatzes~--- einschließlich unerwarteter Befunde.
 
 Die zentrale Forschungsfrage lautet:
 
-\begin{sloppypar}
 \begin{quote}
   \emph{Kann eine zweistufige hybride Pipeline~--- bestehend aus einem metrischen
   Anomalie-Detektor und einer log-basierten Nachfilterung~--- die
   False-Positive-Rate auf dem CloudAnoBench-Datensatz deutlich senken, ohne die
   Recall-Rate unter 0{,}95 zu drücken?}
 \end{quote}
-\end{sloppypar}
 
 Die Arbeit untersucht diese Frage durch einen kontrollierten Ablations-Aufbau, der
 eine rein metrische Baseline, eine log-basierte Komponente sowie zwei
@@ -104,16 +100,16 @@ Die vorliegende Arbeit leistet die folgenden konkreten Beiträge:
     wird ohne Zugriff auf das Testset über einen festen Seed aus einer vordefinierten
     Kandidatenliste gewählt.
 
-  \item \textbf{Case-Level Metrik-Baseline mit XGBoost auf aggregierten Features.}
+  \item \textbf{Case-Level-Metrik-Baseline mit XGBoost auf aggregierten Features.}
     Es wird eine metrische Baseline mit XGBoost~\cite{chen2016xgboost} entwickelt,
-    die direkt auf 25~case-aggregierten Features der fünf universellen Systemmetriken
+    die direkt auf 25~aggregierten Case-Level-Features der fünf universellen Systemmetriken
     trainiert wird (Mittelwert, Maximum, Standardabweichung, 95.~Perzentil und Trend
     je Metrik). Die Beschränkung auf die fünf universell verfügbaren Features ist eine
     methodisch begründete Entscheidung zur Vermeidung von Target Leakage durch
     strukturelle Fehlwerte.
 
   \item \textbf{Log-basierte Verifikation mit Normalisierung, TF-IDF und logistischer
-    Regression.} Es wird eine Case-Ebene-Komponente implementiert, die Log-Texte
+    Regression.} Es wird eine Case-Level-Komponente implementiert, die Log-Texte
     vor der TF-IDF-Vektorisierung durch eine regelbasierte Normalisierung synthetischer
     Artefakte bereinigt (Zeitstempel, IP-Adressen, PIDs, Ports, isolierte Zahlen werden
     durch generische Token ersetzt). Die logistische Regression auf dem normalisierten
@@ -130,7 +126,7 @@ Die vorliegende Arbeit leistet die folgenden konkreten Beiträge:
     explizit diskutiert.
 
   \item \textbf{Szenarioaufgelöste Fehleranalyse.}
-    Es wird eine diagnostische Case-Level-Fehleranalyse durchgeführt, die
+    Es wird eine diagnostische Case-Level-Feh\-ler\-analyse durchgeführt, die
     False Negatives und False Positives nach Szenario aufschlüsselt, ohne
     Modelle neu zu trainieren oder Thresholds zu verändern. Die Analyse
     lokalisiert die Fehlerquellen und stützt die Interpretation der Hauptergebnisse
@@ -141,7 +137,6 @@ Die vorliegende Arbeit leistet die folgenden konkreten Beiträge:
 \subsection{Aufbau der Arbeit}
 % ---------------------------------------------------------------------------
 
-\begin{sloppypar}
 Abschnitt~2 legt die konzeptionellen und methodischen Grundlagen der Pipeline dar.
 Behandelt werden Cloud-Anoma\-lie\-erkennung, unbalancierte Klassifikation und
 Precision-Recall-Metriken, XGBoost, TF-IDF, Data Leakage und gruppenbasierte
@@ -151,10 +146,9 @@ Abschnitt~\ref{sec:data_preparation} beschreibt CloudAnoBench sowie die Daten\-a
 und leakage-sichere Split-Strategie. Abschnitt~4 stellt die metrische Baseline
 (XGBoost auf aggregierten Case-Level-Features) vor; Abschnitt~5 beschreibt die
 log-basierte Verifikationskomponente (TF-IDF und logistische Regression).
-Abschnitt~6 präsentiert die hybride Fusion und die Ablation-Studie einschließlich
+Abschnitt~6 präsentiert die hybride Fusion und die Ablationsstudie einschließlich
 der AND-Gate-Degeneration sowie der szenarioaufgelösten Fehleranalyse. Die
 Ergebnisse werden durch Tabellen und Abbildungen dokumentiert.
-\end{sloppypar}
 
 Abschnitt~7 diskutiert die Ergebnisse im Hinblick auf die Forschungsfrage,
 bewertet die Rolle der einzelnen Komponenten und benennt die methodischen
