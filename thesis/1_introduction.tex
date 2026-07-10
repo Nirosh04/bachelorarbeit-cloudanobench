@@ -17,9 +17,9 @@ Metrikanomaliemuster, die denen echter Angriffe oder Systemfehler ähneln, ohne 
 Dieses Phänomen ist in der Literatur als \emph{Alert Fatigue} bekannt und stellt ein
 anerkanntes operatives Problem im Sicherheitsbetrieb dar. Es beeinträchtigt die
 Reaktionsfähigkeit von Analysten auf tatsächliche Vorfälle. Die Reduktion der
-False-Positive-Rate~--- ohne dabei die Erkennungsrate sicherheitsrelevanter Ereignisse
-wesentlich zu senken~--- ist daher eine zentrale Anforderung an praxistaugliche
-Erkennungssysteme. Abschnitt~2.1 ordnet diesen Befund in die Literatur ein.
+False-Positive-Rate ist daher eine zentrale Anforderung an praxistaugliche
+Erkennungssysteme. Dabei soll die Erkennungsrate sicherheitsrelevanter Ereignisse
+nicht wesentlich sinken. Abschnitt~2.1 ordnet diesen Befund in die Literatur ein.
 
 % ---------------------------------------------------------------------------
 \subsection{Problemstellung}
@@ -39,14 +39,14 @@ Log-Dateien liefern einen ergänzenden, qualitativ anderen Informationstyp: Sie
 enthalten prozessuale Beschreibungen von Systemereignissen, die den Kontext einer
 Metrik-Auffälligkeit klären können~\cite{he2021survey}. Eine Lastspitze in der
 CPU-Auslastung kann sowohl bei einem malignen Prozess als auch bei einem legitimen
-Backup-Job auftreten~--- der zugehörige Log-Eintrag hingegen unterscheidet beide
+Backup-Job auftreten. Der zugehörige Log-Eintrag hingegen unterscheidet beide
 Fälle in der Regel klar. Log-Daten eignen sich daher als nachgelagerte
 Verifikationsstufe: Alerts, die metrisch ausgelöst wurden, können auf Case-Ebene
 anhand ihres Log-Kontexts gefiltert werden.
 
-Die Kombination beider Signalquellen zu einer hybriden Pipeline~--- einem
-metrischen Trigger gefolgt von einer log-basierten Verifikation~--- ist
-konzeptuell naheliegend. CloudAnoBench~\cite{zou2025cloudanobench} stellt einen
+Die Kombination beider Signalquellen zu einer hybriden Pipeline ist konzeptuell
+naheliegend. Die Pipeline besteht aus einem metrischen Trigger, gefolgt von einer
+log-basierten Verifikation. CloudAnoBench~\cite{zou2025cloudanobench} stellt einen
 synthetischen Benchmark bereit, der für jeden überwachten Case sowohl Metriken als
 auch Log-Dateien bereitstellt und damit eine kontrollierte Evaluation eines solchen
 zweistufigen Ansatzes ermöglicht.
@@ -58,21 +58,20 @@ zweistufigen Ansatzes ermöglicht.
 Ziel dieser Arbeit ist die Entwicklung und Evaluation einer zweistufigen hybriden
 Anomalie-Erkennungspipeline auf CloudAnoBench. Der Schwerpunkt liegt auf einer
 methodisch kontrollierten Evaluation und der expliziten Diskussion der Grenzen des
-Ansatzes~--- einschließlich unerwarteter Befunde.
+Ansatzes, einschließlich unerwarteter Befunde.
 
 Die zentrale Forschungsfrage lautet:
 
 \begin{quote}
-  \emph{Kann eine zweistufige hybride Pipeline~--- bestehend aus einem metrischen
-  Anomalie-Detektor und einer log-basierten Nachfilterung~--- die
+  \emph{Kann eine zweistufige hybride Pipeline, bestehend aus einem metrischen
+  Anomalie-Detektor und einer log-basierten Nachfilterung, die
   False-Positive-Rate auf dem CloudAnoBench-Datensatz deutlich senken, ohne die
   Recall-Rate unter 0{,}95 zu drücken?}
 \end{quote}
 
 Die Arbeit untersucht diese Frage durch einen kontrollierten Ablations-Aufbau, der
 eine rein metrische Baseline, eine log-basierte Komponente sowie zwei
-Fusionsstrategien~--- ein binäres AND-Gate und eine Soft-Fusion~--- miteinander
-vergleicht. Die Evaluation folgt dabei strikten Anforderungen an die Vermeidung
+Fusionsstrategien miteinander vergleicht, ein binäres AND-Gate und eine Soft-Fusion. Die Evaluation folgt dabei strikten Anforderungen an die Vermeidung
 von Datenleck und eine leakage-sichere Trainings-Test-Trennung.
 
 Die Skalierbarkeitsbetrachtung dieser Arbeit ist als konzeptionelle Einordnung
@@ -89,9 +88,9 @@ Die vorliegende Arbeit leistet die folgenden konkreten Beiträge:
 
 \begin{enumerate}
   \item \textbf{Reproduzierbare Case-Level-Pipeline auf CloudAnoBench.} Es wird eine
-    in Notebooks dokumentierte, reproduzierbare Pipeline entwickelt, die alle
-    Phasen~--- Datenaufbereitung, Case-Level-Feature-Engineering, Modelltraining,
-    Fusion und Evaluation~--- auf CloudAnoBench umsetzt. 67~automatisierte Tests in
+    in Notebooks dokumentierte, reproduzierbare Pipeline entwickelt. Diese deckt alle
+    Phasen ab, von der Datenaufbereitung über Case-Level-Feature-Engineering und
+    Modelltraining bis hin zu Fusion und Evaluation auf CloudAnoBench. 67~automatisierte Tests in
     14~Testklassen sichern zentrale Implementierungs- und Konsistenzbedingungen ab;
     die Reproduzierbarkeit wird zusätzlich durch fixierte Seeds, gespeicherte
     Split-Zuordnungen, die dokumentierte Ausführungsreihenfolge und die
@@ -117,7 +116,7 @@ Die vorliegende Arbeit leistet die folgenden konkreten Beiträge:
     ausschließlich auf Trainingsdaten gefittet.
 
   \item \textbf{Ablation der Fusionsstrategien einschließlich Degenerationsbefund.}
-    Es werden zwei Fusionsstrategien~--- AND-Gate und Soft-Fusion~--- evaluiert
+    Es werden zwei Fusionsstrategien evaluiert, AND-Gate und Soft-Fusion,
     und mit den Einzelkomponenten verglichen. Ein zentraler empirischer Befund
     ist die vollständige Degeneration des AND-Gates: Der metrische Detektor löst
     beim gewählten Threshold alle 253~Test-Cases aus (100~\%), sodass das AND-Gate

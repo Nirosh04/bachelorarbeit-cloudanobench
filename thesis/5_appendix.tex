@@ -3,8 +3,8 @@
 
 \section{Anhang}
 
-Die zur Reproduktion relevanten Artefakte befinden sich im Repository: die fÃ¼nf
-Jupyter-Notebooks (in dieser Reihenfolge auszufÃ¼hren: \path{01_data_exploration},
+Die zur Reproduktion relevanten Artefakte befinden sich im Repository: die fünf
+Jupyter-Notebooks (in dieser Reihenfolge auszuführen: \path{01_data_exploration},
 \path{02_metric_baseline}, \path{03_log_component}, \path{04_fusion},
 \path{05_error_analysis}), die erzeugten Abbildungen und Artefakt-CSVs im
 Verzeichnis \texttt{docs/} sowie die 67~automatisierten Tests in 14~Testklassen in
@@ -12,31 +12,31 @@ Verzeichnis \texttt{docs/} sowie die 67~automatisierten Tests in 14~Testklassen 
 Negatives, False Positives nach Szenario, malicious-Test-Szenario-Recall und
 Reproduzierbarkeitschecks.
 
-ErgÃ¤nzend liegt im Repository ein \texttt{Dockerfile} vor, das eine einfache
-Jupyter-Lab-Umgebung auf Basis von Python~3.12 mit den benÃ¶tigten AbhÃ¤ngigkeiten
-bereitstellt. Es dient der lokalen Reproduzierbarkeit der Notebook-AusfÃ¼hrung und
+Ergänzend liegt im Repository ein \texttt{Dockerfile} vor, das eine einfache
+Jupyter-Lab-Umgebung auf Basis von Python~3.12 mit den benötigten Abhängigkeiten
+bereitstellt. Es dient der lokalen Reproduzierbarkeit der Notebook-Ausführung und
 ist nicht als produktionsreife Deployment-Umgebung zu verstehen. Der Container kann
 aus dem Repository-Wurzelverzeichnis mit
 \texttt{docker build -t cloudanobench-thesis .}
-gebaut und anschlieÃŸend mit
+gebaut und anschließend mit
 \texttt{docker run -p 8888:8888 cloudanobench-thesis}
 gestartet werden.
 
 \paragraph{Quellcode und Reproduzierbarkeit.}
-Der Quellcode, die ausgefÃ¼hrten Notebooks, die automatisierten Tests und die
-kanonischen Ergebnisartefakte sind Ã¶ffentlich unter
-\url{https://github.com/Nirosh04/bachelorarbeit-cloudanobench} verfÃ¼gbar.
-Der fÃ¼r die in dieser Arbeit berichteten Ergebnisse verwendete
-reproduzierbare Code- und Ergebnisstand entspricht dem vollstÃ¤ndigen
+Der Quellcode, die ausgeführten Notebooks, die automatisierten Tests und die
+kanonischen Ergebnisartefakte sind öffentlich unter
+\url{https://github.com/Nirosh04/bachelorarbeit-cloudanobench} verfügbar.
+Der für die in dieser Arbeit berichteten Ergebnisse verwendete
+reproduzierbare Code- und Ergebnisstand entspricht dem vollständigen
 Git-Commit\newline
-\texttt{17ab951fed539a84fa986c42edb05dffb11e4c7d}.
+\texttt{44afccddf4358caa6887a832e995fcc2e145f4db}.
 
 \subsection{Dokumentation der KI-Nutzung}\label{sec:ki-nutzung}
 
 \subsubsection*{Verwendete Werkzeuge und Einsatzbereiche}
 
-Im Verlauf der Arbeit wurden drei generative KI-Werkzeuge unterstÃ¼tzend
-eingesetzt. Die folgende Tabelle gibt einen Ãœberblick.
+Im Verlauf der Arbeit wurden drei generative KI-Werkzeuge unterstützend
+eingesetzt. Die folgende Tabelle gibt einen Überblick.
 
 \begin{center}
   \small
@@ -46,30 +46,30 @@ eingesetzt. Die folgende Tabelle gibt einen Ãœberblick.
     \hline
     ChatGPT    & OpenAI        & GPT-5.5                         & 05/2026--07/2026 \\
     Claude     & Anthropic     & Claude Sonnet~4.6               & 05/2026--07/2026 \\
-    Perplexity & Perplexity AI & nicht durchgÃ¤ngig protokolliert & 05/2026          \\
+    Perplexity & Perplexity AI & nicht durchgängig protokolliert & 05/2026          \\
     \hline
   \end{tabular}
 \end{center}
 
 \textbf{ChatGPT} (Anbieter: OpenAI, Modell: GPT-5.5) nutzte ich, um selbst
-verfasste Textpassagen auf VerstÃ¤ndlichkeit und sprachliche PrÃ¤zision zu
-prÃ¼fen, bereits entwickelte methodische Ãœberlegungen kritisch zu hinterfragen
+verfasste Textpassagen auf Verständlichkeit und sprachliche Präzision zu
+prüfen, bereits entwickelte methodische Überlegungen kritisch zu hinterfragen
 und einzelne Angaben auf Konsistenz zu kontrollieren.
 
 \textbf{Claude} (Anbieter: Anthropic, Modell: Claude Sonnet~4.6) nutzte ich
-Ã¼ber die Entwicklungsumgebung Cursor zur PrÃ¼fung und punktuellen Verbesserung
-bestehenden Codes, zur Analyse technischer DatenflÃ¼sse sowie zur UnterstÃ¼tzung
+über die Entwicklungsumgebung Cursor zur Prüfung und punktuellen Verbesserung
+bestehenden Codes, zur Analyse technischer Datenflüsse sowie zur Unterstützung
 bei Tests und repositoryweiten Konsistenzkontrollen.
 
-\textbf{Perplexity} (Anbieter: Perplexity AI) wurde ausschlieÃŸlich als
-ergÃ¤nzendes Werkzeug bei der Recherche potenziell relevanter Literatur
-eingesetzt. Auswahl, LektÃ¼re, Bewertung und Zitierung der tatsÃ¤chlich
+\textbf{Perplexity} (Anbieter: Perplexity AI) wurde ausschließlich als
+ergänzendes Werkzeug bei der Recherche potenziell relevanter Literatur
+eingesetzt. Auswahl, Lektüre, Bewertung und Zitierung der tatsächlich
 verwendeten Quellen nahm ich selbst anhand der Originalquellen vor.
 
-\subsubsection*{ReprÃ¤sentative Beispiele}
+\subsubsection*{Repräsentative Beispiele}
 
-Die folgenden drei Beispiele sind reprÃ¤sentative, gekÃ¼rzte Ausschnitte aus
-tatsÃ¤chlichen Interaktionen. Sie decken nicht sÃ¤mtliche KI-Nutzungen im Verlauf
+Die folgenden drei Beispiele sind repräsentative, gekürzte Ausschnitte aus
+tatsächlichen Interaktionen. Sie decken nicht sämtliche KI-Nutzungen im Verlauf
 der Arbeit ab.
 
 % Local helper environment for the KI documentation blocks.
@@ -89,116 +89,116 @@ der Arbeit ab.
   \end{list}%
 }
 
-\subsubsection*{Beispiel~1: PrÃ¼fung der Imputationslogik}
+\subsubsection*{Beispiel~1: Prüfung der Imputationslogik}
 
 \noindent\textit{Auszug aus dem Prompt:}\par
 \begin{kiblock}
-PrÃ¼fe ausschlieÃŸlich lesend, ob fehlende Metrikwerte erst nach Anwendung des
-festen Train-\/Validation-\/Test-Splits imputiert werden und ob die dafÃ¼r
-verwendeten Mediane ausschlieÃŸlich aus Trainingsdaten stammen. VerÃ¤ndere keine
-Dateien. Benenne mÃ¶gliche Leakage-Pfade und die betroffenen
+Prüfe ausschließlich lesend, ob fehlende Metrikwerte erst nach Anwendung des
+festen Train-\/Validation-\/Test-Splits imputiert werden und ob die dafür
+verwendeten Mediane ausschließlich aus Trainingsdaten stammen. Verändere keine
+Dateien. Benenne mögliche Leakage-Pfade und die betroffenen
 Verarbeitungsschritte.
 \end{kiblock}
 
 \noindent\textit{Auszug aus der Antwort:}\par
 \begin{kiblock}
 Die fehlenden Werte werden bereits in der Vorverarbeitung vor Anwendung des
-Splits ersetzt. Dadurch flieÃŸen auch Werte aus Validation und Test in die
-Medianberechnung ein. Die spÃ¤ter vorgesehene Train-only-Imputation kann deshalb
+Splits ersetzt. Dadurch fließen auch Werte aus Validation und Test in die
+Medianberechnung ein. Die später vorgesehene Train-only-Imputation kann deshalb
 auf diese fehlenden Werte nicht mehr wirken.
 \end{kiblock}
 
-\noindent\textit{Eigene PrÃ¼fung:}\par
+\noindent\textit{Eigene Prüfung:}\par
 \begin{kiblock}
-Ich Ã¼berprÃ¼fte die betreffenden Verarbeitungsschritte anschlieÃŸend direkt in
-den Notebooks. Dabei bestÃ¤tigte sich, dass die fehlenden Werte bereits vor
-Anwendung der Split-Zuordnungen ersetzt worden waren. AnschlieÃŸend korrigierte
-ich den Ablauf und ergÃ¤nzte sechs Regressionstests, die sicherstellen, dass die
-Imputationsparameter ausschlieÃŸlich aus Trainingsdaten bestimmt werden.
+Ich überprüfte die betreffenden Verarbeitungsschritte anschließend direkt in
+den Notebooks. Dabei bestätigte sich, dass die fehlenden Werte bereits vor
+Anwendung der Split-Zuordnungen ersetzt worden waren. Anschließend korrigierte
+ich den Ablauf und ergänzte sechs Regressionstests, die sicherstellen, dass die
+Imputationsparameter ausschließlich aus Trainingsdaten bestimmt werden.
 \end{kiblock}
 
 \noindent\textit{Auswirkung auf die Endfassung:}\par
 \begin{kiblock}
 Ich korrigierte die Reihenfolge der Vorverarbeitung und erzeugte alle davon
-abhÃ¤ngigen Ergebnisartefakte erneut. Einzelne Kennzahlen der Metrik-Baseline
-und der Soft-Fusion Ã¤nderten sich geringfÃ¼gig; die zentrale Schlussfolgerung
-der Arbeit blieb unverÃ¤ndert.
+abhängigen Ergebnisartefakte erneut. Einzelne Kennzahlen der Metrik-Baseline
+und der Soft-Fusion änderten sich geringfügig; die zentrale Schlussfolgerung
+der Arbeit blieb unverändert.
 \end{kiblock}
 
-\subsubsection*{Beispiel~2: Typografische PrÃ¼fung einer Abbildungsunterschrift}
+\subsubsection*{Beispiel~2: Typografische Prüfung einer Abbildungsunterschrift}
 
 \noindent\textit{Auszug aus dem Prompt:}\par
 \begin{kiblock}
-FÃ¼hre ausschlieÃŸlich einen gezielten typografischen und
-technischen Konsistenzcheck durch. PrÃ¼fe insbesondere die mathematische
+Führe ausschließlich einen gezielten typografischen und
+technischen Konsistenzcheck durch. Prüfe insbesondere die mathematische
 Schreibweise von \(\text{FPR}_{\text{anom}}\) und \(\text{FPR}_{\text{norm}}\)
-in der Bildunterschrift von Abbildung~7. VerÃ¤ndere keine Ergebnisse, Zahlen
+in der Bildunterschrift von Abbildung~7. Verändere keine Ergebnisse, Zahlen
 oder methodischen Aussagen.
 \end{kiblock}
 
 \noindent\textit{Auszug aus der Antwort:}\par
 \begin{kiblock}
 In der Bildunterschrift wurde eine inkonsistente
-Indexschreibweise gefunden. Die Bezeichnungen wurden durch die im Ã¼brigen
+Indexschreibweise gefunden. Die Bezeichnungen wurden durch die im übrigen
 Dokument verwendete mathematische Notation ersetzt. Datenwerte und Aussagen
-blieben unverÃ¤ndert.
+blieben unverändert.
 \end{kiblock}
 
-\noindent\textit{Eigene PrÃ¼fung:}\par
+\noindent\textit{Eigene Prüfung:}\par
 \begin{kiblock}
-Ich verglich die korrigierte Notation mit den Ã¼brigen Formeln und
-Tabellen der Thesis. AnschlieÃŸend erstellte ich die PDF erneut mit \LaTeX{} und Biber und
-prÃ¼fte Referenzen, Zitate und Seitenlayout.
+Ich verglich die korrigierte Notation mit den übrigen Formeln und
+Tabellen der Thesis. Anschließend erstellte ich die PDF erneut mit \LaTeX{} und Biber und
+prüfte Referenzen, Zitate und Seitenlayout.
 \end{kiblock}
 
 \noindent\textit{Auswirkung auf die Endfassung:}\par
 \begin{kiblock}
-AusschlieÃŸlich die mathematische Darstellung der beiden FPR-Indizes in der
+Ausschließlich die mathematische Darstellung der beiden FPR-Indizes in der
 Bildunterschrift wurde vereinheitlicht. Abbildung, Datenwerte und Interpretation
-blieben unverÃ¤ndert.
+blieben unverändert.
 \end{kiblock}
 
 \subsubsection*{Beispiel~3: Abgleich einer Caption mit Ergebnisartefakten}
 
 \noindent\textit{Auszug aus dem Prompt:}\par
 \begin{kiblock}
-FÃ¼hre ausschlieÃŸlich einen Read-only-Konsistenzcheck durch.
-PrÃ¼fe, ob die Ergebniszahlen in der Thesis mit den kanonischen CSV-Artefakten
-Ã¼bereinstimmen. Ã„ndere keine Datei und nenne bei einer Abweichung die genaue
+Führe ausschließlich einen Read-only-Konsistenzcheck durch.
+Prüfe, ob die Ergebniszahlen in der Thesis mit den kanonischen CSV-Artefakten
+übereinstimmen. Ändere keine Datei und nenne bei einer Abweichung die genaue
 Fundstelle.
 \end{kiblock}
 
 \noindent\textit{Auszug aus der Antwort:}\par
 \begin{kiblock}
 In der Bildunterschrift der Precision-Recall-Kurve der
-Metrik-Baseline steht noch AP~= 0{,}2439. Der aktuelle Wert gemÃ¤ÃŸ den
-Ergebnisartefakten und der Ergebnistabelle betrÃ¤gt AP~= 0{,}2652.
+Metrik-Baseline steht noch AP~= 0{,}2439. Der aktuelle Wert gemäß den
+Ergebnisartefakten und der Ergebnistabelle beträgt AP~= 0{,}2652.
 \end{kiblock}
 
-\noindent\textit{Eigene PrÃ¼fung:}\par
+\noindent\textit{Eigene Prüfung:}\par
 \begin{kiblock}
 Ich glich den genannten Wert mit \path{docs/final_results_table.csv},
-\path{docs/metric_case_results.csv} und der zugehÃ¶rigen Ergebnistabelle der
-Thesis ab. Alle drei Quellen bestÃ¤tigten den Wert 0{,}2652. AnschlieÃŸend
-korrigierte ich ausschlieÃŸlich die veraltete Bildunterschrift.
+\path{docs/metric_case_results.csv} und der zugehörigen Ergebnistabelle der
+Thesis ab. Alle drei Quellen bestätigten den Wert 0{,}2652. Anschließend
+korrigierte ich ausschließlich die veraltete Bildunterschrift.
 \end{kiblock}
 
 \noindent\textit{Auswirkung auf die Endfassung:}\par
 \begin{kiblock}
 Die AP-Angabe in der Bildunterschrift wurde von 0{,}2439 auf 0{,}2652
-aktualisiert. Die Berechnung, die Ergebnisartefakte und alle Ã¼brigen Zahlen
-blieben unverÃ¤ndert.
+aktualisiert. Die Berechnung, die Ergebnisartefakte und alle übrigen Zahlen
+blieben unverändert.
 \end{kiblock}
 
 \subsubsection*{Eigenleistung und Verantwortlichkeit}
 
-Ich verantwortete die Festlegung des finalen Evaluationsdesigns, die DurchfÃ¼hrung der Experimente,
-die PrÃ¼fung der erzeugten Ergebnisse sowie deren Interpretation. Generative KI wurde als unterstÃ¼tzendes Werkzeug fÃ¼r
-Formulierungsalternativen, kritische GegenprÃ¼fungen, Code- und
-KonsistenzprÃ¼fungen sowie die Recherche potenziell relevanter Literatur
-eingesetzt. KI-VorschlÃ¤ge prÃ¼fte ich kritisch anhand des
+Ich verantwortete die Festlegung des finalen Evaluationsdesigns, die Durchführung der Experimente,
+die Prüfung der erzeugten Ergebnisse sowie deren Interpretation. Generative KI wurde als unterstützendes Werkzeug für
+Formulierungsalternativen, kritische Gegenprüfungen, Code- und
+Konsistenzprüfungen sowie die Recherche potenziell relevanter Literatur
+eingesetzt. KI-Vorschläge prüfte ich kritisch anhand des
 Quellcodes, der Tests, der erzeugten Ergebnisartefakte, der Originalquellen und
-des Betreuerfeedbacks und Ã¼bernahm sie nicht ungeprÃ¼ft. Die Verantwortung fÃ¼r sÃ¤mtliche Aussagen,
+des Betreuerfeedbacks und übernahm sie nicht ungeprüft. Die Verantwortung für sämtliche Aussagen,
 Berechnungen und Schlussfolgerungen liegt bei mir.
 
 \subsubsection*{Reflexion}
@@ -206,40 +206,40 @@ Berechnungen und Schlussfolgerungen liegt bei mir.
 Der Einsatz generativer KI-Werkzeuge hatte in dieser Arbeit sowohl erkennbaren
 Nutzen als auch klar erfahrbare Grenzen.
 
-Als nÃ¼tzlich erwies sich vor allem die Geschwindigkeit bei technischen Such- und
-KonsistenzprÃ¼fungen. Repositoryweite Diff-Audits, die manuell sehr aufwendig
-gewesen wÃ¤ren, konnten strukturierter angegangen werden. Ebenso nÃ¼tzlich war die
-MÃ¶glichkeit, alternative Formulierungen fÃ¼r einen bereits selbst erarbeiteten
-Sachverhalt einzuholen und dann eigenstÃ¤ndig zu entscheiden, welche Variante
-wissenschaftlich prÃ¤ziser und angemessener ist. Die UnterstÃ¼tzung bei der
-systematischen PrÃ¼fung von Code und Artefakten erleichterte es, potenzielle
-Inkonsistenzen Ã¼berhaupt erst als prÃ¼fenswert zu identifizieren.
+Als nützlich erwies sich vor allem die Geschwindigkeit bei technischen Such- und
+Konsistenzprüfungen. Repositoryweite Diff-Audits, die manuell sehr aufwendig
+gewesen wären, konnten strukturierter angegangen werden. Ebenso nützlich war die
+Möglichkeit, alternative Formulierungen für einen bereits selbst erarbeiteten
+Sachverhalt einzuholen und dann eigenständig zu entscheiden, welche Variante
+wissenschaftlich präziser und angemessener ist. Die Unterstützung bei der
+systematischen Prüfung von Code und Artefakten erleichterte es, potenzielle
+Inkonsistenzen überhaupt erst als prüfenswert zu identifizieren.
 
 Gleichzeitig wurden die Grenzen solcher Werkzeuge konkret erfahrbar.
-KI-Vor\-schlÃ¤ge kÃ¶nnen fachlich falsch, zu weitgehend oder fÃ¼r den tatsÃ¤chlichen
-Arbeitskontext unangemessen sein. FrÃ¼here VorschlÃ¤ge enthielten etwa Hinweise auf
-zusÃ¤tzliche Experimente oder Anforderungen, die sich an einer
-publikationsorientierten Forschungsarbeit orientierten und fÃ¼r den Rahmen einer
+KI-Vor\-schläge können fachlich falsch, zu weitgehend oder für den tatsächlichen
+Arbeitskontext unangemessen sein. Frühere Vorschläge enthielten etwa Hinweise auf
+zusätzliche Experimente oder Anforderungen, die sich an einer
+publikationsorientierten Forschungsarbeit orientierten und für den Rahmen einer
 Bachelorarbeit weder notwendig noch sinnvoll waren. Auch Ergebnisvergleiche
 wurden gelegentlich ungenau formuliert: Ein Vergleich zweier Systemvarianten
-wurde beispielsweise verfehlt, indem \enquote{zwei weniger False Positives} und \enquote{zwei zusÃ¤tzliche False Positives} verwechselt wurden. Solche Fehler zeigen, dass KI-generierte Aussagen
-Ã¼ber quantitative Ergebnisse zwingend gegen die tatsÃ¤chlichen Artefakte geprÃ¼ft
-werden mÃ¼ssen.
+wurde beispielsweise verfehlt, indem \enquote{zwei weniger False Positives} und \enquote{zwei zusätzliche False Positives} verwechselt wurden. Solche Fehler zeigen, dass KI-generierte Aussagen
+über quantitative Ergebnisse zwingend gegen die tatsächlichen Artefakte geprüft
+werden müssen.
 
-Um diesen Risiken zu begegnen, setzte ich folgende Kontrollmechanismen konsequent ein: FÃ¼r Literatur las und bewertete ich die Originalquellen und Ã¼bernahm
-keine KI-Zusammenfassungen. Quantitative Angaben prÃ¼fte ich stets gegen
+Um diesen Risiken zu begegnen, setzte ich folgende Kontrollmechanismen konsequent ein: Für Literatur las und bewertete ich die Originalquellen und übernahm
+keine KI-Zusammenfassungen. Quantitative Angaben prüfte ich stets gegen
 die kanonischen CSV-Artefakte, nicht gegen gerundete oder verbal
-zusammengefasste Berichte. FÃ¼r Code- und MethodenprÃ¼fungen dienten Git-Diffs,
+zusammengefasste Berichte. Für Code- und Methodenprüfungen dienten Git-Diffs,
 die 67~automatisierten Tests, die Notebook-Validierung sowie der \LaTeX{}/Biber-Build als
-unabhÃ¤ngige PrÃ¼finstanzen. Das Betreuerfeedback diente als wichtige externe
+unabhängige Prüfinstanzen. Das Betreuerfeedback diente als wichtige externe
 Korrektur, insbesondere wenn Formulierungen zu stark oder methodisch nicht
-hinreichend prÃ¤zise waren.
+hinreichend präzise waren.
 
-Die wichtigste Lernerfahrung ist, dass KI-Ausgaben als prÃ¼fbare VorschlÃ¤ge zu
-behandeln sind, nicht als wissenschaftliche AutoritÃ¤t. Die Nutzung solcher
+Die wichtigste Lernerfahrung ist, dass KI-Ausgaben als prüfbare Vorschläge zu
+behandeln sind, nicht als wissenschaftliche Autorität. Die Nutzung solcher
 Werkzeuge hat die Bedeutung eigener fachlicher Kontrolle nicht vermindert,
-sondern in gewisser Weise erhÃ¶ht: Da VorschlÃ¤ge plausibel klingen, aber dennoch
-falsch sein kÃ¶nnen, erfordert jeder Ã¼bernommene Vorschlag eine explizite
-Entscheidung und eine nachvollziehbare BegrÃ¼ndung. Die Verantwortung fÃ¼r den
-finalen Stand der Arbeit~--- ihre Aussagen, Berechnungen, Methodik und
-Schlussfolgerungen~--- lag zu jedem Zeitpunkt bei mir.
+sondern in gewisser Weise erhöht: Da Vorschläge plausibel klingen, aber dennoch
+falsch sein können, erfordert jeder übernommene Vorschlag eine explizite
+Entscheidung und eine nachvollziehbare Begründung. Die Verantwortung für den
+finalen Stand der Arbeit, für ihre Aussagen, Berechnungen, Methodik und
+Schlussfolgerungen, lag zu jedem Zeitpunkt bei mir.

@@ -110,7 +110,7 @@ Eine aggregierte FPR allein hätte diese Differenzierung verborgen.
 
 Die \textbf{validierungsbasierte Threshold-Wahl} ohne testbasierte Anpassung
 verhindert Informationsleck aus dem Testset und macht die Evaluation
-unabhängig von Post-hoc-Optimierungen~--- auch wenn dies den knapp
+unabhängig von Post-hoc-Optimierungen, auch wenn dies den knapp
 verfehlten Test-Recall bedingt.
 
 % ---------------------------------------------------------------------------
@@ -124,8 +124,8 @@ Mehrere Einschränkungen begrenzen die Generalisierbarkeit der Befunde.
 positive Cases bleiben undetektiert. Die Fehleranalyse (vgl. Abschnitt~\ref{sec:error_analysis})
 zeigt, dass alle drei False Negatives aus demselben Szenario
 (\texttt{mali/scenario\_6}, \emph{Rootkit / Backdoor}) stammen und mit
-Log-Scores moderat bis deutlich unter dem Validierungsthreshold liegen~---
-ein Hinweis auf ein szenariospezifisches Angriffsmuster, dessen Log-Signatur
+Log-Scores moderat bis deutlich unter dem Validierungsthreshold liegen.
+Dies deutet auf ein szenariospezifisches Angriffsmuster hin, dessen Log-Signatur
 vom TF-IDF-Modell nicht ausreichend erfasst wird. Bei dem auf Validation
 ausgewählten Threshold bleiben diese Cases unterhalb der Entscheidungsgrenze.
 Eine niedrigere Schwelle könnte den Recall erhöhen, würde jedoch voraussichtlich
@@ -136,7 +136,7 @@ Threshold-Sensitivity (vgl. Abschnitt~\ref{sec:sensitivity}) sichtbar.
 zeigt, dass die False Positives von Log-only nicht gleichmäßig auf Szenarien
 verteilt sind. Im anom-Bereich konzentrieren sich 11 von 18 Fehlklassifikationen
 auf \texttt{scenario\_17} (FPR = 0{,}6111). Im norm-Bereich weist
-\texttt{scenario\_8} eine FPR von 1{,}0000 auf~--- alle 30 norm-Cases dieses
+\texttt{scenario\_8} eine FPR von 1{,}0000 auf. Alle 30 norm-Cases dieses
 Szenarios werden positiv klassifiziert. Eine kausale Erklärung erfordert eine
 tiefere semantische Log-Inspektion und bleibt zukünftiger Arbeit vorbehalten.
 
@@ -146,8 +146,8 @@ mali-Cases von anom- und norm-Cases zu trennen. Typspezifische Features oder
 ausdrucksstärkere Modellklassen könnten diese Einschränkung möglicherweise
 mildern, bergen aber das Risiko von Schema-Leakage.
 
-\textbf{Einfache Fusionsstrategien.} Die untersuchten Fusionsmethoden~---
-binäres AND-Gate und Produkt-Score~--- gehören zu den einfachsten möglichen
+\textbf{Einfache Fusionsstrategien.} Die untersuchten Fusionsmethoden,
+binäres AND-Gate und Produkt-Score, gehören zu den einfachsten möglichen
 Kombinationsregeln. Die Ergebnisse zeigen nicht, dass Log-Fusion im
 Allgemeinen keinen Nutzen hat, sondern dass diese spezifischen einfachen
 Fusionsregeln auf diesem Benchmark keinen Zusatznutzen gegenüber Log-only
@@ -177,7 +177,7 @@ für zukünftige Arbeiten:
   \item[Ausdrucksstärkere Metrik-Features.]
     Zeitfenster-Aggregate, typspezifische Features oder tiefe Sequenzmodelle
     auf Zeitreihenbasis könnten die Diskriminationskraft der metrischen
-    Komponente verbessern~--- sofern Schema-Leakage vermieden wird. Eine
+    Komponente verbessern, sofern Schema-Leakage vermieden wird. Eine
     selektivere Metrik-Komponente würde auch die AND-Gate-Fusion aus ihrer
     Degeneration befreien.
 
@@ -214,6 +214,6 @@ für zukünftige Arbeiten:
 
 Die Arbeit zeigt damit weniger eine universelle Verbesserung durch Fusion als
 vielmehr die Notwendigkeit, Log-Kontext und Evaluationsgranularität in der
-Cloud-Anomaly-Detection sorgfältig zu berücksichtigen~--- und methodisch
+Cloud-Anomaly-Detection sorgfältig zu berücksichtigen und dabei methodisch
 sauber zwischen dem Beitrag einzelner Komponenten und dem Beitrag ihrer
 Kombination zu unterscheiden.
