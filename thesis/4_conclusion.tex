@@ -16,10 +16,10 @@ XGBoost-Klassifikator auf 25~aggregierten Case-Level-Systemmetriken
 Regression auf normalisierten Log-Texten (Log-only) sowie zwei
 Fusionsvarianten (AND-Fusion, Soft-Fusion). Der Aufbau folgt einem
 scenario-aware dreistufigen Split (Train / Validation / Test) ohne
-Gruppenüberlappung; Threshold-Wahl und Early Stopping wurden ausschließlich
+Gruppenüberlappung. Threshold-Wahl und Early Stopping wurden ausschließlich
 auf dem Validierungsset vorgenommen, das Testset diente nur der finalen
 Evaluation. 67~automatisierte Tests in 14~Testklassen sichern zentrale Implementierungs-
-und Konsistenzbedingungen ab; die Reproduzierbarkeit wird zusätzlich durch fixierte
+und Konsistenzbedingungen ab. Die Reproduzierbarkeit wird zusätzlich durch fixierte
 Zufallsseeds (Testsplit: \texttt{random\_state=42}), gespeicherte Split-Zuordnungen
 und die dokumentierte Ausführungsreihenfolge unterstützt.
 
@@ -40,7 +40,7 @@ High-Recall-Operating-Point.
 \textbf{Log-only} ist die stärkste Variante: FPR$_{\text{total}}$~=~0{,}2537\newline
 (FPR$_{\text{anom}}$~=~0{,}2368, FPR$_{\text{norm}}$~=~0{,}2636) bei
 Recall$_{\text{mali}}$~=~0{,}9375 und AP~=~0{,}6548. Damit werden 45~von~48
-positiven Cases erkannt; 3~Cases bleiben undetektiert
+positiven Cases erkannt, während 3~Cases undetektiert bleiben
 (False Negatives).
 
 \textbf{AND-Fusion} ist funktional identisch zu Log-only: Der metrische
@@ -75,7 +75,7 @@ Der Test-Recall$_{\text{mali}}$ von 0{,}9375 (45/48) verfehlt die
 angestrebte Schwelle von 0{,}95 knapp. Bei dem auf Validation ausgewählten
 Threshold bleiben die drei False-Negative-Cases unterhalb der Entscheidungs\-grenze.
 Eine niedrigere Schwelle könnte den Recall erhöhen, würde jedoch voraussichtlich
-zusätzliche False Positives erzeugen; dieser Trade-off wird in der
+zusätzliche False Positives erzeugen. Dieser Trade-off wird in der
 Threshold-Sensitivity sichtbar. Dieser Befund ist methodisch transparent: Eine
 testbasierte Nachoptimierung wurde bewusst nicht vorgenommen.
 
@@ -120,7 +120,7 @@ verfehlten Test-Recall bedingt.
 Mehrere Einschränkungen begrenzen die Generalisierbarkeit der Befunde.
 
 \textbf{Verfehlte Recall-Zielschwelle.} Der Test-Recall$_{\text{mali}}$ von
-0{,}9375 liegt knapp unter der angestrebten Schwelle von 0{,}95; drei
+0{,}9375 liegt knapp unter der angestrebten Schwelle von 0{,}95. Drei
 positive Cases bleiben undetektiert. Die Fehleranalyse (vgl. Abschnitt~\ref{sec:error_analysis})
 zeigt, dass alle drei False Negatives aus demselben Szenario
 (\texttt{mali/scenario\_6}, \emph{Rootkit / Backdoor}) stammen und mit
@@ -129,7 +129,7 @@ Dies deutet auf ein szenariospezifisches Angriffsmuster hin, dessen Log-Signatur
 vom TF-IDF-Modell nicht ausreichend erfasst wird. Bei dem auf Validation
 ausgewählten Threshold bleiben diese Cases unterhalb der Entscheidungsgrenze.
 Eine niedrigere Schwelle könnte den Recall erhöhen, würde jedoch voraussichtlich
-zusätzliche False Positives erzeugen; dieser Trade-off wird in der
+zusätzliche False Positives erzeugen. Dieser Trade-off wird in der
 Threshold-Sensitivity (vgl. Abschnitt~\ref{sec:sensitivity}) sichtbar.
 
 \textbf{Szenarioabhängige Konzentration der False Positives.} Die Fehleranalyse
@@ -154,7 +154,7 @@ Fusionsregeln auf diesem Benchmark keinen Zusatznutzen gegenüber Log-only
 liefern.
 
 \textbf{Einzelner Split.} Es wurde lediglich ein einziger scenario-aware
-Train-/Validierungs-/Test-Split verwendet; die Streuung der Ergebnisse über
+Train-/Validierungs-/Test-Split verwendet. Die Streuung der Ergebnisse über
 verschiedene Splits ist unbekannt.
 
 \textbf{Synthetischer Datensatz.} CloudAnoBench basiert auf kontrollierten
@@ -163,8 +163,8 @@ Infrastrukturdaten mit natürlichen Klassenverteilungen und variablen
 Log-Formaten übertragbar sind, ist nicht untersucht.
 
 \textbf{Keine Sequenzmodelle oder semantische Log-Encoder.} TF-IDF und
-logistische Regression sind eine interpretierbare, aber begrenzte Baseline;
-strukturierte Log-Parser oder tiefe Sprachmodelle wurden nicht untersucht.
+logistische Regression sind eine interpretierbare, aber begrenzte Baseline.
+Strukturierte Log-Parser oder tiefe Sprachmodelle wurden nicht untersucht.
 
 % ---------------------------------------------------------------------------
 \subsection{Ausblick}
@@ -198,12 +198,12 @@ für zukünftige Arbeiten:
     Bootstrap-Konfidenzintervalle würden die Stabilität der Ergebnisse
     quantifizierbar machen. Für den beobachteten Recall von~45/48 ergibt sich
     ein approximatives 95-\%-Wilson-Konfidenzintervall von
-    $[0{,}832;\,0{,}979]$; der Zielwert~0{,}95 liegt damit innerhalb des
+    $[0{,}832;\,0{,}979]$. Der Zielwert~0{,}95 liegt damit innerhalb des
     Intervalls. Dieses Ergebnis ist jedoch im Kontext des festen Holdout-Splits
     mit begrenzter szenariospezifischer Testabdeckung zu interpretieren.
 
   \item[Analyse der False-Negative-Cases.]
-    Die drei nicht detektierten positiven Cases ($\text{FN}=3$) stammen aus \texttt{mali/scenario\_6} (\emph{Rootkit / Backdoor}). Bei dem auf Validation ausgewählten Threshold liegen diese Cases unterhalb der Entscheidungsgrenze. Eine niedrigere Schwelle könnte den Test-Recall grundsätzlich erhöhen, würde jedoch voraussichtlich zusätzliche False Positives erzeugen; dieser Trade-off wird in der Threshold-Sensitivity sichtbar. Die ergänzende Szenarioanalyse zeigt zudem, dass \texttt{mali/scenario\_6} mit 21 von 24 korrekt erkannten Cases (Recall 0{,}8750) insgesamt schwieriger ist, jedoch nicht vollständig verfehlt wird.
+    Die drei nicht detektierten positiven Cases ($\text{FN}=3$) stammen aus \texttt{mali/scenario\_6} (\emph{Rootkit / Backdoor}). Bei dem auf Validation ausgewählten Threshold liegen diese Cases unterhalb der Entscheidungsgrenze. Eine niedrigere Schwelle könnte den Test-Recall grundsätzlich erhöhen, würde jedoch voraussichtlich zusätzliche False Positives erzeugen. Dieser Trade-off wird in der Threshold-Sensitivity sichtbar. Die ergänzende Szenarioanalyse zeigt zudem, dass \texttt{mali/scenario\_6} mit 21 von 24 korrekt erkannten Cases (Recall 0{,}8750) insgesamt schwieriger ist, jedoch nicht vollständig verfehlt wird.
 
   \item[Evaluation auf realem Produktions-Traffic.]
     CloudAnoBench verwendet kontrollierte Anomalie-Injektionen. Ob die

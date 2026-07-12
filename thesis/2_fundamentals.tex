@@ -31,7 +31,7 @@ Als Evaluierungsgrundlage dient CloudAnoBench~\cite{zou2025cloudanobench}, ein
 synthetischer Benchmark, der Systemmetriken und Log-Dateien für Szenarien mit
 malignem, anomalem und normalem Systemverhalten bereitstellt. CloudAnoBench ist
 ein neuerer Benchmark und nicht als langjährig etablierter Goldstandard der
-Community zu verstehen; die in dieser Arbeit erzielten Ergebnisse sind
+Community zu verstehen. Die in dieser Arbeit erzielten Ergebnisse sind
 datensatzspezifisch und besitzen keine unmittelbare Allgemeingültigkeit.
 
 % ---------------------------------------------------------------------------
@@ -58,8 +58,8 @@ Signaturen für unterschiedliche Ereigniskategorien tragen, die in den Metriken 
 sichtbar sind.
 
 Die vorliegende Arbeit verfolgt einen zweistufigen Ansatz: Ein metrischer Detektor
-identifiziert zunächst potenzielle Auffälligkeiten auf Basis von Ressourcensignalen;
-eine log-basierte Komponente verifiziert anschließend auf Case-Ebene, ob der
+identifiziert zunächst potenzielle Auffälligkeiten auf Basis von Ressourcensignalen.
+Eine log-basierte Komponente verifiziert anschließend auf Case-Ebene, ob der
 Log-Kontext den Alert stützt. Beide Komponenten sind methodisch aufeinander abgestimmt
 und werden in Abschnitt~\ref{sec:data_preparation} im Detail beschrieben.
 
@@ -80,7 +80,7 @@ Die für diese Arbeit relevanten Metriken sind:
     klassifizierten Instanzen an allen als positiv gekennzeichneten.
   \item[Recall] $R = \frac{TP}{TP + FN}$: Anteil der tatsächlich positiven
     Instanzen, die erkannt werden. In dieser Arbeit dient $R \geq 0{,}95$ als
-    Zielkriterium für die Threshold-Wahl auf dem Validierungsset; ob dieser Wert
+    Zielkriterium für die Threshold-Wahl auf dem Validierungsset. Ob dieser Wert
     im unabhängigen Testsplit erreicht wird, ist eine empirische Frage.
   \item[False-Positive-Rate] $\text{FPR} = \frac{FP}{FP + TN}$: Anteil der
     negativen Instanzen, die fälschlicherweise als positiv eingestuft werden.
@@ -118,7 +118,7 @@ Setting sowie die Möglichkeit, AUCPR direkt als Optimierungsmetrik zu verwenden
 
 XGBoost wird hier nicht als grundsätzlich überlegenes Verfahren positioniert, sondern
 als solide, reproduzierbare Baseline für tabellarische Klassifikation. Es ist nicht
-Ziel dieser Arbeit, das metrische Modell zu optimieren; vielmehr soll seine
+Ziel dieser Arbeit, das metrische Modell zu optimieren. Vielmehr soll seine
 Leistungsgrenze die Notwendigkeit einer ergänzenden Log-Komponente motivieren.
 
 % ---------------------------------------------------------------------------
@@ -130,16 +130,16 @@ Die log-basierte Komponente dieser Arbeit nutzt eine Kombination aus
 Frequency~-- Inverse Document Frequency}) gewichtet Terme proportional zu ihrer
 Häufigkeit im Dokument, normiert jedoch durch ihre Häufigkeit über alle Dokumente.
 Häufige, wenig diskriminierende Terme, in Log-Dateien etwa routinemäßige
-Statusmeldungen, erhalten dadurch geringere Gewichte; seltene, charakteristische
+Statusmeldungen, erhalten dadurch geringere Gewichte. Seltene, charakteristische
 Terme werden hervorgehoben.
 
 Auf der TF-IDF-Matrix wird eine logistische Regression trainiert. Lineare Modelle
 auf sparse hochdimensionalen Textrepräsentationen sind für diese Problemklasse
-eine etablierte Wahl; umgesetzt wird der Klassifikator in dieser Arbeit mit
-scikit-learn~\cite{pedregosa2011scikit}. Die logistische Regression
+eine etablierte Wahl. Der Klassifikator wird in dieser Arbeit mit
+scikit-learn~\cite{pedregosa2011scikit} umgesetzt. Die logistische Regression
 liefert Scores, die in der nachgelagerten Fusionsstufe
 direkt weiterverwendet werden. Eine explizite Wahrscheinlichkeitskalibrierung
-(z.\,B. Platt Scaling) wurde nicht durchgeführt; die Ausgaben werden daher als
+(z.\,B. Platt Scaling) wurde nicht durchgeführt. Die Ausgaben werden daher als
 Modellscores interpretiert.
 
 Die Entscheidung für TF-IDF und logistische Regression folgt dem Prinzip einer
@@ -197,7 +197,7 @@ $\hat{p}_{\text{metric}}(c)$ aus dem metrischen XGBoost-Klassifikator, der auf
 (je Metrik: Mittelwert, Maximum, Standardabweichung, 95.~Perzentil und linearer
 Trend), sowie $\hat{p}_{\text{log}}(c)$ aus der log-basierten logistischen
 Regression auf dem normalisierten TF-IDF-Raum. Beide Komponenten arbeiten direkt
-auf Case-Ebene; ein zwischengeschalteter Row-Level-Aggregationsschritt entfällt.
+auf Case-Ebene. Ein zwischengeschalteter Row-Level-Aggregationsschritt entfällt.
 
 Zwei Fusionsstrategien werden untersucht. Das \textbf{AND-Gate} stellt eine
 konservative Strategie dar: Ein Alert wird nur ausgegeben, wenn \emph{beide}
@@ -216,9 +216,9 @@ Die \textbf{Soft-Fusion} kombiniert beide Scores als Produkt:
 Da beide Faktoren im Intervall $[0,1]$ liegen, gilt dies auch für
 $s_{\text{fusion}}(c)$. Kittler~et~al.~\cite{kittler1998combining} zeigen, dass
 die Produktregel unter der Annahme unabhängiger Klassifikatoren asymptotisch
-optimal ist; wie gut diese Annahme auf den vorliegenden Daten zutrifft, ist eine
+optimal ist. Wie gut diese Annahme auf den vorliegenden Daten zutrifft, ist eine
 empirische Frage. Die Thresholds $\tau_{\text{metric}}$ und $\tau_{\text{log}}$
-werden ausschließlich auf dem Validierungsset bestimmt; das Testset wird nur zur
+werden ausschließlich auf dem Validierungsset bestimmt. Das Testset wird nur zur
 finalen Evaluation verwendet. Ob die AND-Gate-Strategie gegenüber einer
 Einzelkomponente einen Mehrwert liefert, wird in Abschnitt~\ref{sec:ablation}
 untersucht.

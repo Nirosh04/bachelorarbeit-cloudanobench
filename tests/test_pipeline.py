@@ -1451,22 +1451,22 @@ class TestCaseLevelFusion:
         }
         # Synthetische Tabelle aufbauen wie NB04
         rows = [
-            {'Model': 'Metrics-only',  'Recall_mali': 1.0,   'Precision': 0.19, 'F1': 0.31,
-             'FPR_anom': 1.0, 'FPR_norm': 1.0, 'FPR_total': 1.0, 'AP': 0.55,
-             'Threshold': 0.09, 'Threshold_source': 'metric_validation',
+            {'Model': 'Metrics-only',  'Recall_mali': 1.0,   'Precision': 0.1897, 'F1': 0.3189,
+             'FPR_anom': 1.0, 'FPR_norm': 1.0, 'FPR_total': 1.0, 'AP': 0.2652,
+             'Threshold': 0.025803, 'Threshold_source': 'metric_validation',
              'TP': 48, 'FP': 205, 'TN': 0, 'FN': 0},
-            {'Model': 'Log-only',      'Recall_mali': 0.9375, 'Precision': 0.5,  'F1': 0.65,
-             'FPR_anom': 0.18, 'FPR_norm': 0.24, 'FPR_total': 0.22, 'AP': 0.65,
-             'Threshold': 0.23, 'Threshold_source': 'log_validation',
-             'TP': 45, 'FP': 45, 'TN': 160, 'FN': 3},
-            {'Model': 'AND-Fusion',    'Recall_mali': 0.9375, 'Precision': 0.5,  'F1': 0.65,
-             'FPR_anom': 0.18, 'FPR_norm': 0.24, 'FPR_total': 0.22, 'AP': 'N/A',
-             'Threshold': 0.09, 'Threshold_source': 'metric_and_log_validation',
-             'TP': 45, 'FP': 45, 'TN': 160, 'FN': 3},
-            {'Model': 'Soft-Fusion',   'Recall_mali': 0.9375, 'Precision': 0.52, 'F1': 0.67,
-             'FPR_anom': 0.17, 'FPR_norm': 0.22, 'FPR_total': 0.20, 'AP': 0.68,
-             'Threshold': 0.10, 'Threshold_source': 'product_validation',
-             'TP': 45, 'FP': 41, 'TN': 164, 'FN': 3},
+            {'Model': 'Log-only',      'Recall_mali': 0.9375, 'Precision': 0.4639, 'F1': 0.6207,
+             'FPR_anom': 0.2368, 'FPR_norm': 0.2636, 'FPR_total': 0.2537, 'AP': 0.6548,
+             'Threshold': 0.164056, 'Threshold_source': 'log_validation',
+             'TP': 45, 'FP': 52, 'TN': 153, 'FN': 3},
+            {'Model': 'AND-Fusion',    'Recall_mali': 0.9375, 'Precision': 0.4639, 'F1': 0.6207,
+             'FPR_anom': 0.2368, 'FPR_norm': 0.2636, 'FPR_total': 0.2537, 'AP': 'N/A',
+             'Threshold': 0.025803, 'Threshold_source': 'metric_and_log_validation',
+             'TP': 45, 'FP': 52, 'TN': 153, 'FN': 3},
+            {'Model': 'Soft-Fusion',   'Recall_mali': 0.9375, 'Precision': 0.4545, 'F1': 0.6122,
+             'FPR_anom': 0.25, 'FPR_norm': 0.2713, 'FPR_total': 0.2634, 'AP': 0.5553,
+             'Threshold': 0.004785, 'Threshold_source': 'product_validation',
+             'TP': 45, 'FP': 54, 'TN': 151, 'FN': 3},
         ]
         df = pd.DataFrame(rows)
 
