@@ -2,6 +2,7 @@
 % !TeX root = thesis.tex
 
 \section{Anhang}
+\label{sec:appendix}
 
 Die zur Reproduktion relevanten Artefakte befinden sich im Repository: die fünf
 Jupyter-Notebooks (in dieser Reihenfolge auszuführen: \path{01_data_exploration},
@@ -15,28 +16,34 @@ Reproduzierbarkeitschecks.
 Ergänzend liegt im Repository ein \texttt{Dockerfile} vor, das eine einfache
 Jupyter-Lab-Umgebung auf Basis von Python~3.12 mit den benötigten Abhängigkeiten
 bereitstellt. Es dient der lokalen Reproduzierbarkeit der Notebook-Ausführung und
-ist nicht als produktionsreife Deployment-Umgebung zu verstehen. Der Container kann
-aus dem Repository-Wurzelverzeichnis mit
+ist nicht als produktionsreife Deployment-Umgebung zu verstehen. Der Container kann aus dem Repository-Wurzelverzeichnis mit
+\begin{center}
 \texttt{docker build -t cloudanobench-thesis .}
+\end{center}
 gebaut und anschließend mit
+\begin{center}
 \texttt{docker run -p 8888:8888 cloudanobench-thesis}
+\end{center}
 gestartet werden.
 
-\paragraph{Quellcode und Reproduzierbarkeit.}
-Der Quellcode, die ausgeführten Notebooks, die automatisierten Tests und die
-kanonischen Ergebnisartefakte sind öffentlich unter
-\url{https://github.com/Nirosh04/bachelorarbeit-cloudanobench} verfügbar.
-Der für die in dieser Arbeit berichteten Ergebnisse verwendete
-reproduzierbare Code- und Ergebnisstand entspricht dem vollständigen
-Git-Commit\newline
-\texttt{dfa867899088d488afeb59b96d63e43990fe81c5}.
+\begin{description}
+  \item[Quellcode und Reproduzierbarkeit.]
+    Der Quellcode, die ausgeführten Notebooks, die automatisierten Tests und die
+    kanonischen Ergebnisartefakte sind öffentlich unter
+    \url{https://github.com/Nirosh04/bachelorarbeit-cloudanobench} verfügbar.
+    Der für die in dieser Arbeit berichteten Ergebnisse verwendete
+    reproduzierbare Code- und Ergebnisstand entspricht dem vollständigen
+    Git-Commit\newline
+    \texttt{dfa867899088d488afeb59b96d63e43990fe81c5}. Zusätzlich ist dieser
+    Stand als Git-Tag \texttt{thesis-reproducible-v6} referenziert.
+\end{description}
 
 \subsection{Dokumentation der KI-Nutzung}\label{sec:ki-nutzung}
 
 \subsubsection*{Verwendete Werkzeuge und Einsatzbereiche}
 
-Im Verlauf der Arbeit wurden drei generative KI-Werkzeuge unterstützend
-eingesetzt. Die folgende Tabelle gibt einen Überblick.
+Im Verlauf der Arbeit wurden drei generative KI-Werkzeuge
+unterstützend eingesetzt. Die folgende Tabelle gibt einen Überblick.
 
 \begin{center}
   \small
@@ -51,20 +58,20 @@ eingesetzt. Die folgende Tabelle gibt einen Überblick.
   \end{tabular}
 \end{center}
 
-\textbf{ChatGPT} (Anbieter: OpenAI, Modell: GPT-5.5) nutzte ich, um selbst
+\textbf{ChatGPT} (Anbieter: OpenAI, Modell: GPT-5.5) wurde eingesetzt, um selbst
 verfasste Textpassagen auf Verständlichkeit und sprachliche Präzision zu
-prüfen, bereits entwickelte methodische Überlegungen kritisch zu hinterfragen
+prüfen, bereits ent\-wi\-ckel\-te methodische Überlegungen kritisch zu hinterfragen
 und einzelne Angaben auf Konsistenz zu kontrollieren.
 
-\textbf{Claude} (Anbieter: Anthropic, Modell: Claude Sonnet~4.6) nutzte ich
+\textbf{Claude} (Anbieter: Anthropic, Modell: Claude Sonnet~4.6) wurde
 über die Entwicklungsumgebung Cursor zur Prüfung und punktuellen Verbesserung
 bestehenden Codes, zur Analyse technischer Datenflüsse sowie zur Unterstützung
-bei Tests und repositoryweiten Konsistenzkontrollen.
+bei Tests und repositoryweiten Konsistenzkontrollen eingesetzt.
 
 \textbf{Perplexity} (Anbieter: Perplexity AI) wurde ausschließlich als
 ergänzendes Werkzeug bei der Recherche potenziell relevanter Literatur
 eingesetzt. Auswahl, Lektüre, Bewertung und Zitierung der tatsächlich
-verwendeten Quellen nahm ich selbst anhand der Originalquellen vor.
+verwendeten Quellen wurden anhand der Originalquellen vorgenommen.
 
 \subsubsection*{Repräsentative Beispiele}
 
@@ -108,23 +115,26 @@ Medianberechnung ein. Die später vorgesehene Train-only-Imputation kann deshalb
 auf diese fehlenden Werte nicht mehr wirken.
 \end{kiblock}
 
+\Needspace{4\baselineskip}
 \noindent\textit{Eigene Prüfung:}\par
 \begin{kiblock}
-Ich überprüfte die betreffenden Verarbeitungsschritte anschließend direkt in
-den Notebooks. Dabei bestätigte sich, dass die fehlenden Werte bereits vor
-Anwendung der Split-Zuordnungen ersetzt worden waren. Anschließend korrigierte
-ich den Ablauf und ergänzte sechs Regressionstests, die sicherstellen, dass die
-Imputationsparameter ausschließlich aus Trainingsdaten bestimmt werden.
+Die betreffenden Verarbeitungsschritte wurden anschließend direkt in den
+Note\-books überprüft. Dabei bestätigte sich, dass die fehlenden Werte bereits vor
+Anwendung der Split-Zuordnungen ersetzt worden waren. Anschließend wurde der
+Ablauf korrigiert und um sechs Regressionstests ergänzt, die sicherstellen, dass
+die Imputationsparameter ausschließlich aus Trainingsdaten bestimmt werden.
 \end{kiblock}
 
+\Needspace{6\baselineskip}
 \noindent\textit{Auswirkung auf die Endfassung:}\par
 \begin{kiblock}
-Ich korrigierte die Reihenfolge der Vorverarbeitung und erzeugte alle davon
-abhängigen Ergebnisartefakte erneut. Einzelne Kennzahlen der Metrik-Baseline
-und der Soft-Fusion änderten sich geringfügig. Die zentrale Schlussfolgerung
-der Arbeit blieb unverändert.
+Die Reihenfolge der Vorverarbeitung wurde korrigiert und alle davon
+abhängigen Ergebnisartefakte wurden erneut erzeugt. Einzelne Kennzahlen der
+Metrik-Baseline und der Soft-Fusion änderten sich geringfügig. Die zentrale
+Schlussfolgerung der Arbeit blieb unverändert.
 \end{kiblock}
 
+\Needspace{15\baselineskip}
 \subsubsection*{Beispiel~2: Typografische Prüfung einer Abbildungsunterschrift}
 
 \noindent\textit{Auszug aus dem Prompt:}\par
@@ -146,9 +156,9 @@ blieben unverändert.
 
 \noindent\textit{Eigene Prüfung:}\par
 \begin{kiblock}
-Ich verglich die korrigierte Notation mit den übrigen Formeln und
-Tabellen der Thesis. Anschließend erstellte ich die PDF erneut mit \LaTeX{} und Biber und
-prüfte Referenzen, Zitate und Seitenlayout.
+Die korrigierte Notation wurde mit den übrigen Formeln und
+Tabellen der Bachelorarbeit abgeglichen. Anschließend wurde die PDF erneut mit
+\LaTeX{} und Biber erstellt und Referenzen, Zitate und Seitenlayout wurden geprüft.
 \end{kiblock}
 
 \noindent\textit{Auswirkung auf die Endfassung:}\par
@@ -158,14 +168,19 @@ Bildunterschrift wurde vereinheitlicht. Abbildung, Datenwerte und Interpretation
 blieben unverändert.
 \end{kiblock}
 
+% Haelt den gesamten Beginn von Beispiel 3 (Ueberschrift, Prompt-Label und
+% Beginn des Prompt-Textes) zusammen und verschiebt ihn auf die naechste Seite,
+% damit die Ueberschrift nicht am Seitenende allein bzw. abgetrennt vom Block
+% steht. Der Wert ist empirisch am Build kalibriert.
+\Needspace{8\baselineskip}
 \subsubsection*{Beispiel~3: Abgleich einer Caption mit Ergebnisartefakten}
 
 \noindent\textit{Auszug aus dem Prompt:}\par
 \begin{kiblock}
 Führe ausschließlich einen Read-only-Konsistenzcheck durch.
-Prüfe, ob die Ergebniszahlen in der Thesis mit den kanonischen CSV-Artefakten
-übereinstimmen. Ändere keine Datei und nenne bei einer Abweichung die genaue
-Fundstelle.
+Prüfe, ob die Ergebniszahlen in der Bachelorarbeit mit den kanonischen
+CSV-Artefakten übereinstimmen. Ändere keine Datei und nenne bei einer Abweichung
+die genaue Fundstelle.
 \end{kiblock}
 
 \noindent\textit{Auszug aus der Antwort:}\par
@@ -175,14 +190,16 @@ Metrik-Baseline steht noch AP~= 0{,}2439. Der aktuelle Wert gemäß den
 Ergebnisartefakten und der Ergebnistabelle beträgt AP~= 0{,}2652.
 \end{kiblock}
 
+\Needspace{6\baselineskip}
 \noindent\textit{Eigene Prüfung:}\par
 \begin{kiblock}
-Ich glich den genannten Wert mit \path{docs/final_results_table.csv},
+Der genannte Wert wurde mit \path{docs/final_results_table.csv},
 \path{docs/metric_case_results.csv} und der zugehörigen Ergebnistabelle der
-Thesis ab. Alle drei Quellen bestätigten den Wert 0{,}2652. Anschließend
-korrigierte ich ausschließlich die veraltete Bildunterschrift.
+Bachelorarbeit abgeglichen. Alle drei Quellen bestätigten den Wert 0{,}2652.
+Anschließend wurde ausschließlich die veraltete Bildunterschrift korrigiert.
 \end{kiblock}
 
+\Needspace{7\baselineskip}
 \noindent\textit{Auswirkung auf die Endfassung:}\par
 \begin{kiblock}
 Die AP-Angabe in der Bildunterschrift wurde von 0{,}2439 auf 0{,}2652
@@ -192,14 +209,15 @@ blieben unverändert.
 
 \subsubsection*{Eigenleistung und Verantwortlichkeit}
 
-Ich verantwortete die Festlegung des finalen Evaluationsdesigns, die Durchführung der Experimente,
-die Prüfung der erzeugten Ergebnisse sowie deren Interpretation. Generative KI wurde als unterstützendes Werkzeug für
+Die Festlegung des finalen Evaluationsdesigns, die Durchführung der Experimente,
+die Prüfung der erzeugten Ergebnisse sowie deren Interpretation wurden im Rahmen
+dieser Arbeit eigenständig vom Verfasser dieser Arbeit verantwortet. Generative KI wurde als unterstützendes Werkzeug für
 Formulierungsalternativen, kritische Gegenprüfungen, Code- und
 Konsistenzprüfungen sowie die Recherche potenziell relevanter Literatur
-eingesetzt. KI-Vorschläge prüfte ich kritisch anhand des
+eingesetzt. KI-Vorschläge wurden kritisch anhand des
 Quellcodes, der Tests, der erzeugten Ergebnisartefakte, der Originalquellen und
-des Betreuerfeedbacks und übernahm sie nicht ungeprüft. Die Verantwortung für sämtliche Aussagen,
-Berechnungen und Schlussfolgerungen liegt bei mir.
+des Betreuerfeedbacks geprüft und nicht ungeprüft übernommen. Die Verantwortung für sämtliche Aussagen,
+Berechnungen und Schlussfolgerungen liegt beim Verfasser dieser Arbeit.
 
 \subsubsection*{Reflexion}
 
@@ -226,9 +244,9 @@ wurde beispielsweise verfehlt, indem \enquote{zwei weniger False Positives} und 
 über quantitative Ergebnisse zwingend gegen die tatsächlichen Artefakte geprüft
 werden müssen.
 
-Um diesen Risiken zu begegnen, setzte ich folgende Kontrollmechanismen konsequent ein: Für Literatur las und bewertete ich die Originalquellen und übernahm
-keine KI-Zusammenfassungen. Quantitative Angaben prüfte ich stets gegen
-die kanonischen CSV-Artefakte, nicht gegen gerundete oder verbal
+Um diesen Risiken zu begegnen, wurden folgende Kontrollmechanismen konsequent eingesetzt: Für Literatur wurden die Originalquellen gelesen und bewertet, ohne
+KI-Zusammenfassungen zu übernehmen. Quantitative Angaben wurden stets gegen
+die kanonischen CSV-Artefakte geprüft, nicht gegen gerundete oder verbal
 zusammengefasste Berichte. Für Code- und Methodenprüfungen dienten Git-Diffs,
 die 67~automatisierten Tests, die Notebook-Validierung sowie der \LaTeX{}/Biber-Build als
 unabhängige Prüfinstanzen. Das Betreuerfeedback diente als wichtige externe
@@ -242,4 +260,4 @@ sondern in gewisser Weise erhöht: Da Vorschläge plausibel klingen, aber dennoc
 falsch sein können, erfordert jeder übernommene Vorschlag eine explizite
 Entscheidung und eine nachvollziehbare Begründung. Die Verantwortung für den
 finalen Stand der Arbeit, für ihre Aussagen, Berechnungen, Methodik und
-Schlussfolgerungen, lag zu jedem Zeitpunkt bei mir.
+Schlussfolgerungen, lag zu jedem Zeitpunkt beim Verfasser dieser Arbeit.

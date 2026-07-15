@@ -15,10 +15,102 @@
 %   de (default), en
 %   Changing this value between LaTeX runs may require deleting the .aux files
 %
-\documentclass[serif,article,noparskip,de]{agse-thesis}
+\documentclass[serif,article,parskip,de]{agse-thesis}
 \usepackage{amsmath}
 \usepackage{csquotes}
 \usepackage{microtype}
+\usepackage{needspace}
+\usepackage{placeins}
+\usepackage{float}
+
+% Globales Absatzlayout: keine Erstzeileneinrueckung, moderater und
+% einheitlicher vertikaler Abstand zwischen Absaetzen. Die parskip-Option der
+% Dokumentklasse laedt das parskip-Paket, das die Listen-, Verzeichnis- und
+% Caption-Abstaende robust anpasst. Der Absatzabstand wird hier auf ein
+% moderates Mass gesetzt.
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.55\baselineskip plus 0.1\baselineskip minus 0.05\baselineskip}
+
+% ---------------------------------------------------------------------------
+% Layout des Abbildungs- und Tabellenverzeichnisses.
+% Anforderungen: Eintragsform "Abbildung N: Titel" bzw. "Tabelle N: Titel",
+% keine Punktfuehrer, keine Seitenzahlen, linksbuendig mit sauberem haengendem
+% Einzug, beide Verzeichnisse optisch identisch und an der Klarheit des
+% Abkuerzungsverzeichnisses orientiert. Die Eintraege werden automatisch aus
+% den Captions erzeugt.
+% ---------------------------------------------------------------------------
+% Feste Labelbreiten: das Praefix ("Abbildung"/"Tabelle") wird in einer eigenen,
+% auf die jeweilige Wortbreite zugeschnittenen Box linksbuendig gesetzt, danach
+% folgt ein fester, geschuetzter Abstand (\loflotgap) und die Nummer
+% rechtsbuendig in einer festen, gemeinsamen Ziffernbreite. Da der Abstand
+% zwischen Wort und Nummer unabhaengig von der Ziffernbreite fest ist, bleibt
+% er auch bei zweistelligen Nummern (10-13) erhalten. Dadurch stehen Wort und
+% Nummer in beiden Verzeichnissen unmittelbar, aber mit normalem Abstand
+% zusammen, alle Doppelpunkte stehen je Verzeichnis exakt untereinander, nach
+% dem Doppelpunkt folgt derselbe feste Abstand, und die Titel starten mit
+% einem sauberen haengenden Einzug an derselben Position. Abbildungs- und
+% Tabellenverzeichnis verwenden dieselbe Konstruktionslogik (\loflotentry),
+% lediglich die Praefixbreite ist an die jeweilige Wortlaenge ("Abbildung"
+% bzw. "Tabelle") angepasst, damit kein ueberschuessiger Abstand vor der
+% Nummer entsteht.
+\newlength{\loflotprefixwidthfig}
+\newlength{\loflotprefixwidthtab}
+\newlength{\loflotnumwidth}
+\newlength{\loflotgap}
+\newlength{\loflotlabelwidthfig}
+\newlength{\loflotlabelwidthtab}
+\AtBeginDocument{%
+  \settowidth{\loflotprefixwidthfig}{Abbildung}%
+  \settowidth{\loflotprefixwidthtab}{Tabelle}%
+  \settowidth{\loflotnumwidth}{88}%
+  \setlength{\loflotgap}{0.4em}% normaler geschuetzter Abstand Wort/Nummer
+  \setlength{\loflotlabelwidthfig}{\loflotprefixwidthfig}%
+  \addtolength{\loflotlabelwidthfig}{\loflotgap}%
+  \addtolength{\loflotlabelwidthfig}{\loflotnumwidth}%
+  \addtolength{\loflotlabelwidthfig}{1.2em}% Doppelpunkt + fester Folgeabstand
+  \setlength{\loflotlabelwidthtab}{\loflotprefixwidthtab}%
+  \addtolength{\loflotlabelwidthtab}{\loflotgap}%
+  \addtolength{\loflotlabelwidthtab}{\loflotnumwidth}%
+  \addtolength{\loflotlabelwidthtab}{1.2em}% Doppelpunkt + fester Folgeabstand
+}
+\makeatletter
+\newcommand{\loflotentry}[4]{%
+  % #1 = Praefix (Abbildung/Tabelle), #2 = Praefixbreite, #3 = Labelbreite,
+  % #4 = \numberline{n}Titel
+  \begingroup
+    \setlength{\parindent}{\z@}%
+    \setlength{\leftskip}{#3}%
+    \setlength{\rightskip}{\z@ \@plus 2em}%
+    \parfillskip=\z@ \@plus 1fil
+    \renewcommand\numberline[1]{%
+      \hskip-#3\relax
+      \hb@xt@#3{%
+        \hb@xt@#2{#1\hfil}%
+        \hskip\loflotgap\relax
+        \hb@xt@\loflotnumwidth{\hfil##1}%
+        :\hfil}%
+    }%
+    \noindent\ignorespaces #4\par
+  \endgroup
+}
+\renewcommand*\l@figure[2]{\loflotentry{Abbildung}{\loflotprefixwidthfig}{\loflotlabelwidthfig}{#1}}
+\renewcommand*\l@table[2]{\loflotentry{Tabelle}{\loflotprefixwidthtab}{\loflotlabelwidthtab}{#1}}
+\makeatother
+
+% Die Dokumentklasse verwendet article+twoside, wodurch \flushbottom aktiv ist.
+% Auf abbildungs- und tabellenlastigen, nicht ganz gefuellten Seiten streckt
+% \flushbottom die vertikalen Abstaende und erzeugt grosse Leerraeume in der
+% Seitenmitte. \raggedbottom verlagert den Restplatz an das natuerliche
+% Seitenende und beseitigt die unmotivierten mittigen Leerraeume.
+\raggedbottom
+
+% Verhindert die unschöne Silbentrennung "Konfigurati-on"; erlaubt nur den
+% Umbruch an den Komposita-Fugen.
+\hyphenation{Hyper-parameter-konfiguration}
+
+% Produktname: verhindert die irreführende Trennung "ML-flow"; MLflow bleibt
+% ungetrennt.
+\hyphenation{MLflow}
 
 % Global parameters, replace with actual values.
 \newcommand{\thesisTitle}{Reduzierung von False Positives in der Cloud-Sicherheit durch Einbeziehung von Log-Kontext in eine metrikbasierte Detection-Pipeline: Eine empirische Untersuchung auf CloudAnoBench}
@@ -39,6 +131,12 @@
 % submission does not require chapters to start on a recto page.
 \let\cleardoublepage\clearpage
 
+% Die Vorspann-Seite ist eine inhaltliche Kurzfassung der gesamten Arbeit
+% (kein bloßer Aufbau-Überblick) und wird daher als "Kurzfassung" betitelt,
+% um eine doppelte Verwendung von "Zusammenfassung" gegenüber Kapitel 8.1
+% zu vermeiden. Babel (ngerman) setzt \abstractname sonst auf "Zusammenfassung".
+\renewcommand{\abstractname}{Kurzfassung}
+
 \coverpage[
     student/id=5585800,
     student/mail=niroh04@zedat.fu-berlin.de,
@@ -53,14 +151,19 @@
     abstract/separate,      % abstract on its own page
 ]
 { % Abstract:
+    % Beide Absaetze der Kurzfassung verwenden dasselbe globale Absatzlayout wie
+    % der Haupttext: linksbuendig, keine Erstzeileneinrueckung, einheitlicher
+    % Absatzabstand.
+    \setlength{\parindent}{0pt}%
+    \setlength{\parskip}{0.55\baselineskip plus 0.1\baselineskip minus 0.05\baselineskip}%
     \noindent
     Automatisierte Anomalie-Erkennung in Cloud-Infrastrukturen erzeugt häufig eine
     hohe Rate an Fehlalarmen (\emph{False Positives}), die Analysten belasten und
-    die Reaktionsfähigkeit auf echte Sicherheitsvorfälle beeinträchtigen. Diese Arbeit
+    die Reaktions\-fähigkeit auf echte Sicherheitsvorfälle beeinträchtigen. Diese Arbeit
     untersucht auf dem CloudAnoBench-Datensatz, inwiefern Log-Kontext die
     False-Positive-Rate einer metrikbasierten Detection-Pipeline reduzieren kann. Dazu wird
     eine reproduzierbare Case-Level-Pipeline entwickelt, die einen XGBoost-Klassifikator
-    auf aggregierten Systemmetriken, eine log-basierte TF-IDF-Repräsentation mit
+    auf aggregierten Systemmetriken, eine log-basierte TF-IDF-Reprä\-sentation mit
     logistischer Regression sowie zwei einfache Fusionsvarianten vergleicht.
     Die finale Evaluation erfolgt leakage-sicher mit einem scenario-aware
     Train-/Validierungs-/Test-Split. Early Stopping und Threshold-Wahl werden ausschließlich
@@ -90,21 +193,56 @@
 
 \clearpage
 
+\phantomsection
+\addcontentsline{toc}{section}{Abbildungsverzeichnis}
+\listoffigures
+
+% Abbildungs- und Tabellenverzeichnis teilen sich eine Seite: kein Seitenumbruch
+% zwischen beiden Verzeichnissen, sondern ein moderater vertikaler Abstand. Die
+% Verzeichnisbefehle der article-Basisklasse erzwingen selbst keinen Umbruch.
+% Beide erhalten einen eigenen Eintrag im Inhaltsverzeichnis; da sie sich eine
+% Seite teilen koennen, duerfen beide dieselbe Seitenzahl besitzen.
+\vspace{\baselineskip}
+
+\phantomsection
+\addcontentsline{toc}{section}{Tabellenverzeichnis}
+\listoftables
+
+\clearpage
+
 \section*{Abkürzungsverzeichnis}
 \addcontentsline{toc}{section}{Abkürzungsverzeichnis}
-\begin{tabular}{@{}l@{\quad}l@{}}
-  AP     & Average Precision \\
-  AUCPR  & Area Under the Precision-Recall Curve \\
-  CPU    & Central Processing Unit \\
-  FN     & False Negative \\
-  FP     & False Positive \\
-  FPR    & False-Positive-Rate \\
-  KI     & Künstliche Intelligenz \\
-  PR     & Precision-Recall \\
-  SOC    & Security Operations Center \\
-  TF-IDF & Term Frequency und Inverse Document Frequency \\
-  TN     & True Negative \\
-  TP     & True Positive \\
+% Kuerzel rechtsbuendig, damit alle Doppelpunkte exakt untereinander stehen und
+% nach dem Doppelpunkt (via \quad) ein einheitlicher Abstand zur Erklaerung folgt.
+\begin{tabular}{@{}r@{\quad}l@{}}
+  AP:     & Average Precision \\
+  AUCPR:  & Area Under the Precision-Recall Curve \\
+  CPU:    & Central Processing Unit \\
+  CSV:    & Comma-Separated Values \\
+  F1:     & F1-Maß \\
+  FN:     & False Negative \\
+  FP:     & False Positive \\
+  FPR:    & False-Positive-Rate \\
+  HTTP:   & Hypertext Transfer Protocol \\
+  IP:     & Internet Protocol \\
+  IPv4:   & Internet Protocol Version 4 \\
+  ISO:    & International Organization for Standardization \\
+  KI:     & Künstliche Intelligenz \\
+  ML:     & Machine Learning \\
+  \texttt{NaN}: & Not a Number \\
+  PDF:    & Portable Document Format \\
+  PID:    & Process Identifier \\
+  PR:     & Precision-Recall \\
+  ROC:    & Receiver Operating Characteristic \\
+  ROC-AUC: & Area Under the Receiver Operating Characteristic Curve \\
+  SOC:    & Security Operations Center \\
+  TF-IDF: & Term Frequency und Inverse Document Frequency \\
+  TN:     & True Negative \\
+  TP:     & True Positive \\
+  UUID:   & Universally Unique Identifier \\
+  XGBoost: & Extreme Gradient Boosting \\
+  $\tau_{\text{metric}}$: & Schwellenwert des Metrikmodells \\
+  $\tau_{\text{log}}$:    & Schwellenwert des Logmodells \\
 \end{tabular}
 
 \clearpage
@@ -121,6 +259,6 @@
 \printbibliography
 
 \appendix
-\include{5_appendix}
+\input{5_appendix}
 
 \end{document}

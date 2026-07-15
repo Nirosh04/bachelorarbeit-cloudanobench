@@ -18,10 +18,18 @@ Fusionsvarianten (AND-Fusion, Soft-Fusion). Der Aufbau folgt einem
 scenario-aware dreistufigen Split (Train / Validation / Test) ohne
 Gruppenüberlappung. Threshold-Wahl und Early Stopping wurden ausschließlich
 auf dem Validierungsset vorgenommen, das Testset diente nur der finalen
-Evaluation. 67~automatisierte Tests in 14~Testklassen sichern zentrale Implementierungs-
-und Konsistenzbedingungen ab. Die Reproduzierbarkeit wird zusätzlich durch fixierte
+Evaluation. Die Qualitätssicherung umfasst 67~automatisierte Tests in 14~Testklassen, die
+zentrale Implementierungs- und Konsistenzbedingungen absichern. Die Reproduzierbarkeit wird zusätzlich durch fixierte
 Zufallsseeds (Testsplit: \texttt{random\_state=42}), gespeicherte Split-Zuordnungen
 und die dokumentierte Ausführungsreihenfolge unterstützt.
+
+Kapitel~2 legte die konzeptionellen und methodischen Grundlagen, darunter
+Cloud-Anomalieerkennung, unbalancierte Klassifikation, XGBoost, TF-IDF und
+leakage-sichere Validierung. Kapitel~3 beschrieb den Datensatz, die Vorverarbeitung
+und den gruppenbasierten Split. Die Kapitel~4 bis~6 untersuchten die metrische
+Baseline, die log-basierte Verifikationskomponente sowie die Fusionsstrategien und
+werteten die Ergebnisse auf Case-Ebene aus. Kapitel~7 diskutierte die Befunde im
+Hinblick auf die Forschungsfrage und benannte die methodischen Limitationen.
 
 % ---------------------------------------------------------------------------
 \subsection{Zentrale Ergebnisse}
@@ -30,29 +38,33 @@ und die dokumentierte Ausführungsreihenfolge unterstützt.
 Die Ablation auf dem Testset (253~Cases, davon 48~mali, 76~anom,
 129~norm) ergibt folgendes Bild:
 
-\textbf{Metrics-only} erkennt alle 48 positiven Cases
-(Recall$_{\text{mali}}$ = 1{,}0000), klassifiziert aber gleichzeitig alle
-205 negativen Cases als positiv (FPR$_{\text{total}}$ = 1{,}0000, TN~=~0).
-Die 25~Case-Level-Aggregate der fünf universellen Metriken liefern auf
-diesem Benchmark keine ausreichende operative Selektivität am gewählten
-High-Recall-Operating-Point.
+\begin{description}
+  \item[Metrics-only.] Erkennt alle 48 positiven Cases
+    (Recall$_{\text{mali}}$ = 1{,}0000), klassifiziert aber gleichzeitig alle
+    205 negativen Cases als positiv (FPR$_{\text{total}}$ = 1{,}0000, TN~=~0).
+    Die 25~Case-Level-Aggregate der fünf universellen Metriken liefern auf
+    diesem Benchmark keine ausreichende operative Selektivität am gewählten
+    High-Recall-Operating-Point.
 
-\textbf{Log-only} ist die stärkste Variante: FPR$_{\text{total}}$~=~0{,}2537\newline
-(FPR$_{\text{anom}}$~=~0{,}2368, FPR$_{\text{norm}}$~=~0{,}2636) bei
-Recall$_{\text{mali}}$~=~0{,}9375 und AP~=~0{,}6548. Damit werden 45~von~48
-positiven Cases erkannt, während 3~Cases undetektiert bleiben
-(False Negatives).
+  \item[Log-only.] Ist die stärkste Variante: FPR$_{\text{total}}$~=~0{,}2537
+    (FPR$_{\text{anom}}$~=~0{,}2368, FPR$_{\text{norm}}$~=~0{,}2636) bei
+    Recall$_{\text{mali}}$~=~0{,}9375 und AP~=~0{,}6548. Damit werden 45~von~48
+    positiven Cases erkannt, während 3~Cases undetektiert bleiben
+    (False Negatives).
 
-\textbf{AND-Fusion} ist funktional identisch zu Log-only: Der metrische
-Trigger ist bei allen 253~Test-Cases aktiv (metric\_trigger~=~253/253~=~100~\%),
-sodass das AND-Gate vollständig degeneriert.
+  \item[AND-Fusion.] Ist funktional identisch zu Log-only: Der metrische
+    Trigger ist bei allen 253~Test-Cases aktiv
+    (metric\_trigger~=~253/253~=~100~\%), sodass das AND-Gate vollständig
+    degeneriert.
 
-\textbf{Soft-Fusion} weist gegenüber Log-only denselben Recall auf, erzeugt
-jedoch zwei zusätzliche False Positives (54 vs.~52) und verschlechtert sich in
-Precision, F1, FPR und AP:
-F1~=~0{,}6122 (vs.~0{,}6207), FPR$_{\text{total}}$~=~0{,}2634
-(vs.~0{,}2537), AP~=~0{,}5553 (vs.~0{,}6548). Soft-Fusion liefert daher keinen
-Zusatznutzen gegenüber Log-only.
+  \Needspace{5\baselineskip}
+  \item[Soft-Fusion.] Weist gegenüber Log-only denselben Recall auf, erzeugt
+    jedoch zwei zusätzliche False Positives (54 vs.~52) und verschlechtert sich
+    in Precision, F1, FPR und AP: F1~=~0{,}6122 (vs.~0{,}6207),
+    FPR$_{\text{total}}$~=~0{,}2634 (vs.~0{,}2537), AP~=~0{,}5553
+    (vs.~0{,}6548). Soft-Fusion liefert daher keinen Zusatznutzen gegenüber
+    Log-only.
+\end{description}
 
 % ---------------------------------------------------------------------------
 \subsection{Beantwortung der Forschungsfrage}
@@ -80,8 +92,9 @@ Threshold-Sensitivity sichtbar. Dieser Befund ist methodisch transparent: Eine
 testbasierte Nachoptimierung wurde bewusst nicht vorgenommen.
 
 Die Befunde gelten für CloudAnoBench unter den gewählten Konfigurationen.
-Ob die Ergebnisse auf andere Benchmark-Datensätze oder reale Infrastrukturen
-übertragbar sind, bleibt durch diese Arbeit offen.
+Die Übertragbarkeit der Ergebnisse auf andere Benchmark-Datensätze oder reale
+Infrastrukturen muss offen bleiben, da die Evaluation ausschließlich auf
+CloudAnoBench durchgeführt wurde.
 
 % ---------------------------------------------------------------------------
 \subsection{Methodische Bedeutung}
@@ -90,28 +103,34 @@ Ob die Ergebnisse auf andere Benchmark-Datensätze oder reale Infrastrukturen
 Mehrere methodische Entscheidungen haben die Validität der Evaluation
 wesentlich bestimmt.
 
-Die \textbf{Case-Level-Auswertung} ist für die Security-Detection konzeptuell
-angemessen: Ein Alert-Entscheid bezieht sich auf eine Beobachtungseinheit
-als Ganzes, nicht auf einen einzelnen Messpunkt. Ein ausschließlich
-Row-Level-Vergleich hätte die AP-Werte strukturell verzerrt und einen
-direkten Vergleich zwischen Metrik- und Log-Komponente unmöglich gemacht.
+\begin{description}
+  \item[Case-Level-Auswertung.] Die Auswertung auf Case-Ebene ist für die\hfil\break
+    Security-Detection konzeptuell angemessen: Ein Alert-Entscheid bezieht sich
+    auf eine Beobachtungseinheit als Ganzes, nicht auf einen einzelnen
+    Messpunkt. Ein ausschließlich Row-Level-Vergleich hätte die AP-Werte
+    strukturell verzerrt und einen direkten Vergleich zwischen Metrik- und
+    Log-Komponente unmöglich gemacht.
 
-Die \textbf{Log-Normalisierung} (Ersetzen von Zeitstempeln, IP-Adressen,
-PIDs, Ports und isolierten Zahlen durch generische Token vor der TF-IDF-Vektorisierung)
-stellt sicher, dass das Modell auf semantisch relevanten Mustern und nicht
-auf synthetischen Artefakten des Benchmark-Generators trainiert wird. Dieser
-Schritt ist methodisch sauber, weil er deterministisch und label-unabhängig
-ist.
+  \item[Log-Normalisierung.] Das Ersetzen von Zeitstempeln, IP-Adressen,
+    PIDs, Ports und isolierten Zahlen durch generische Token vor der
+    TF-IDF-Vektorisierung stellt sicher, dass das Modell auf semantisch
+    relevanten Mustern und nicht auf synthetischen Artefakten des
+    Benchmark-Generators trainiert wird. Dieser Schritt ist methodisch sauber,
+    weil er deterministisch und label-unabhängig ist.
 
-Die \textbf{getrennte FPR-Auswertung} für anom und norm zeigt, dass beide
-Negativtypen relevant und ähnlich schwer von mali zu trennen sind
-(Log-only: FPR$_{\text{anom}}$~=~0{,}2368, FPR$_{\text{norm}}$~=~0{,}2636).
-Eine aggregierte FPR allein hätte diese Differenzierung verborgen.
+  \Needspace{4\baselineskip}
+  \item[Getrennte FPR-Auswertung.] Die getrennte Auswertung für anom und norm
+    zeigt, dass beide Negativtypen relevant und ähnlich schwer von mali zu
+    trennen sind (Log-only: FPR$_{\text{anom}}$~=~0{,}2368,
+    FPR$_{\text{norm}}$~=~0{,}2636). Eine aggregierte FPR allein hätte diese
+    Differenzierung verborgen.
 
-Die \textbf{validierungsbasierte Threshold-Wahl} ohne testbasierte Anpassung
-verhindert Informationsleck aus dem Testset und macht die Evaluation
-unabhängig von Post-hoc-Optimierungen, auch wenn dies den knapp
-verfehlten Test-Recall bedingt.
+  \item[Validierungsbasierte Threshold-Wahl.] Die Threshold-Wahl auf dem
+    Validierungsset ohne testbasierte Anpassung verhindert Informationslecks
+    aus dem Testset und macht die Evaluation unabhängig von
+    Post-hoc-Optimierungen, auch wenn dies den knapp verfehlten Test-Recall
+    bedingt.
+\end{description}
 
 % ---------------------------------------------------------------------------
 \subsection{Limitationen}
@@ -119,7 +138,8 @@ verfehlten Test-Recall bedingt.
 
 Mehrere Einschränkungen begrenzen die Generalisierbarkeit der Befunde.
 
-\textbf{Verfehlte Recall-Zielschwelle.} Der Test-Recall$_{\text{mali}}$ von
+\begin{description}
+  \item[Verfehlte Recall-Zielschwelle.] Der Test-Recall$_{\text{mali}}$ von
 0{,}9375 liegt knapp unter der angestrebten Schwelle von 0{,}95. Drei
 positive Cases bleiben undetektiert. Die Fehleranalyse (vgl. Abschnitt~\ref{sec:error_analysis})
 zeigt, dass alle drei False Negatives aus demselben Szenario
@@ -132,7 +152,7 @@ Eine niedrigere Schwelle könnte den Recall erhöhen, würde jedoch voraussichtl
 zusätzliche False Positives erzeugen. Dieser Trade-off wird in der
 Threshold-Sensitivity (vgl. Abschnitt~\ref{sec:sensitivity}) sichtbar.
 
-\textbf{Szenarioabhängige Konzentration der False Positives.} Die Fehleranalyse
+  \item[Szenarioabhängige Konzentration der False Positives.] Die Fehleranalyse
 zeigt, dass die False Positives von Log-only nicht gleichmäßig auf Szenarien
 verteilt sind. Im anom-Bereich konzentrieren sich 11 von 18 Fehlklassifikationen
 auf \texttt{scenario\_17} (FPR = 0{,}6111). Im norm-Bereich weist
@@ -140,31 +160,36 @@ auf \texttt{scenario\_17} (FPR = 0{,}6111). Im norm-Bereich weist
 Szenarios werden positiv klassifiziert. Eine kausale Erklärung erfordert eine
 tiefere semantische Log-Inspektion und bleibt zukünftiger Arbeit vorbehalten.
 
-\textbf{Geringe Diskriminationskraft der Metrik-Komponente.} Die 25~aggregierten
+  \item[Geringe Diskriminationskraft der Metrik-Komponente.] Die 25~aggregierten
 Case-Level-Features der fünf universellen Metriken reichen nicht aus, um
 mali-Cases von anom- und norm-Cases zu trennen. Typspezifische Features oder
 ausdrucksstärkere Modellklassen könnten diese Einschränkung möglicherweise
 mildern, bergen aber das Risiko von Schema-Leakage.
 
-\textbf{Einfache Fusionsstrategien.} Die untersuchten Fusionsmethoden,
+  \item[Einfache Fusionsstrategien.] Die untersuchten Fusionsmethoden,
 binäres AND-Gate und Produkt-Score, gehören zu den einfachsten möglichen
 Kombinationsregeln. Die Ergebnisse zeigen nicht, dass Log-Fusion im
 Allgemeinen keinen Nutzen hat, sondern dass diese spezifischen einfachen
 Fusionsregeln auf diesem Benchmark keinen Zusatznutzen gegenüber Log-only
 liefern.
 
-\textbf{Einzelner Split.} Es wurde lediglich ein einziger scenario-aware
+  \Needspace{4\baselineskip}
+  \item[Einzelner Split.] Es wurde lediglich ein einziger scenario-aware
 Train-/Validierungs-/Test-Split verwendet. Die Streuung der Ergebnisse über
 verschiedene Splits ist unbekannt.
 
-\textbf{Synthetischer Datensatz.} CloudAnoBench basiert auf kontrollierten
-Anomalie-Injektionen. Ob die gelernten Log-Muster auf reale
+  \Needspace{6\baselineskip}
+  \item[Synthetischer Datensatz.] CloudAnoBench basiert auf kontrollierten
+Anomalie-In\-jek\-tio\-nen. Ob die gelernten Log-Muster auf reale
 Infrastrukturdaten mit natürlichen Klassenverteilungen und variablen
-Log-Formaten übertragbar sind, ist nicht untersucht.
+Log-Formaten übertragbar sind, wurde im Rahmen dieser Arbeit nicht untersucht,
+da die Evaluation ausschließlich auf CloudAnoBench basiert.
 
-\textbf{Keine Sequenzmodelle oder semantische Log-Encoder.} TF-IDF und
+  \item[Keine Sequenzmodelle oder semantische Log-Encoder.] TF-IDF und
 logistische Regression sind eine interpretierbare, aber begrenzte Baseline.
-Strukturierte Log-Parser oder tiefe Sprachmodelle wurden nicht untersucht.
+Die Untersuchung strukturierter Log-Parser und tiefer Sprachmodelle lag
+außerhalb des festgelegten Rahmens dieser Arbeit.
+\end{description}
 
 % ---------------------------------------------------------------------------
 \subsection{Ausblick}
@@ -188,11 +213,13 @@ für zukünftige Arbeiten:
     solche Regeln auf CloudAnoBench einen Vorteil gegenüber Log-only erzielen,
     bleibt eine offene Frage.
 
-  \item[Sequenzielle Log-Modelle und strukturiertes Log-Parsing.]\leavevmode\\
-    Ob struk\-tur-be\-wusste Log-Par\-ser, vortrainierte Sprachmodelle oder
+  \item[Sequenzielle Log-Modelle und strukturiertes Log-Parsing.]
+    Ob strukturbewusste\hfil\break
+    Log-Parser, vortrainierte Sprachmodelle oder
     Embedding-Methoden die FPR weiter reduzieren, wäre eine naheliegende
     Erweiterung der Log-Komponente über die TF-IDF-Baseline hinaus.
 
+  \Needspace{7\baselineskip}
   \item[Weitere Splits und statistische Absicherung.]
     Wiederholte Splits mit unterschiedlichen Zufallszuständen oder
     Bootstrap-Konfidenzintervalle würden die Stabilität der Ergebnisse

@@ -208,9 +208,9 @@
         \vspace{4mm}
 
         \begin{tabular}{rl}
-            \ifcsdef{advisor}{Betreuer/in: & \advisor\\}{}
+            \ifcsdef{advisor}{Betreuer: & \advisor\\}{}
             Eingereicht bei: & \firstExaminer \\
-            \ifcsdef{secondExaminer}{Zweitgutachter/in: & \secondExaminer\\}{}
+            \ifcsdef{secondExaminer}{Zweitgutachter: & \secondExaminer\\}{}
         \end{tabular}
 
         \vspace{4mm}

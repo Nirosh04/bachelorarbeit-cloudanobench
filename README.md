@@ -136,3 +136,7 @@ und ist kein produktionsreifes Deployment.
 | `docs/fpr_comparison.png` | FPR-Vergleich aller Systemvarianten |
 | `docs/feature_*.png` | Feature-Verteilungen und -Importances |
 | `docs/tfidf_top_features.png` | Top-TF-IDF-Koeffizienten |
+| `docs/final_results_table.csv` | Zentrale Kennzahlen aller vier Systemvarianten |
+| `docs/*_val_scores.csv`, `docs/*_test_scores.csv` | Validierungs- und Testscores der Metrik-, Log- und Fusionskomponenten |
+| `docs/fpr_by_dataset_type.csv`, `docs/mali_test_scenario_recall.csv` | FPR nach Datensatztyp und Recall der malicious-Testszenarien |
+| `docs/false_negative_*`, `docs/false_positive_*` | Detailartefakte und Zusammenfassungen der Fehleranalyse |

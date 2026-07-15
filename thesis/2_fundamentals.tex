@@ -14,13 +14,13 @@ Abweichungen. In großen, dynamischen Infrastrukturen erzeugen solche Systeme je
 regelmäßig eine hohe Zahl von Fehlalarmen, sogenannte False Positives, die
 Sicherheitsanalysten belasten und deren Reaktionsfähigkeit auf echte Vorfälle
 verringern. Dieser Effekt ist in der Literatur als \emph{Alert Fatigue} bekannt
-und stellt ein anerkanntes operatives Problem in Security Operations Centers (SOCs) dar~\cite{tariq2025alert}.
+und stellt ein anerkanntes operatives Problem in Security Operations Centers dar~\cite{tariq2025alert}.
 Alahmadi~et~al.~\cite{alahmadi202299} belegen in einer qualitativen Studie, dass
 in real betriebenen SOCs ein erheblicher Teil der ausgelösten Sicherheitsalarme auf
 False Positives entfällt, was die Analysekapazität für tatsächliche Vorfälle
 systematisch einschränkt.
 
-Die False-Positive-Rate (FPR) ist dabei die zentrale operative Zielgröße: Sie
+Die False-Positive-Rate ist dabei die zentrale operative Zielgröße: Sie
 beschreibt den Anteil tatsächlich negativer Instanzen, der fälschlicherweise als
 Alarm eingestuft wird. Eine hohe FPR verursacht nicht nur unnötigen Analyseaufwand,
 sondern kann im Extremfall dazu führen, dass echte Angriffe im Rauschen untergehen.
@@ -73,6 +73,7 @@ He und Garcia~\cite{hegarcia2009learning} zeigen, dass in solchen Szenarien
 standardmäßige Klassifikationsmetriken wie Accuracy irreführend sind, da sie
 von der Mehrheitsklasse dominiert werden.
 
+\Needspace{6\baselineskip}
 Die für diese Arbeit relevanten Metriken sind:
 
 \begin{description}
@@ -85,36 +86,37 @@ Die für diese Arbeit relevanten Metriken sind:
   \item[False-Positive-Rate] $\text{FPR} = \frac{FP}{FP + TN}$: Anteil der
     negativen Instanzen, die fälschlicherweise als positiv eingestuft werden.
     Dies ist die zentrale operative Zielgröße.
-  \item[Average Precision (AP)] Fläche unter der Precision-Recall-Kurve,
+  \item[Average Precision AP:] Fläche unter der Precision-Recall-Kurve,
     berechnet als gewichteter Mittelwert der Precision-Werte über alle
     Recall-Stufen. AP fasst die Klassifikatorleistung über alle möglichen
     Thresholds zusammen.
 \end{description}
 
 Davis und Goadrich~\cite{davis2006relationship} zeigen, dass die PR-Kurve
-gegenüber der ROC-Kurve bei unbalancierten Problemen informativer ist: Während
-ROC-AUC die Leistung im negativen Regime mitunter überschätzt, macht die PR-Kurve
-Schwächen bei der Behandlung der Minderheitsklasse direkt sichtbar. Saito und
+gegenüber der ROC-Kurve bei
+unbalancierten Problemen informativer ist: Während der ROC-AUC die Leistung im negativen
+Regime mitunter überschätzt, macht die PR-Kurve Schwächen bei der Behandlung der
+Minderheitsklasse direkt sichtbar. Saito und
 Rehmsmeier~\cite{saito2015precision} bestätigen dies und empfehlen PR-Kurven
 explizit für stark unbalancierte Klassifikationsprobleme. Diese Befunde motivieren
-in dieser Arbeit die Verwendung von AUCPR als primäre Optimierungsmetrik sowie
-die Fokussierung auf FPR und AP in der Evaluation.
+in dieser Arbeit die Verwendung von AUCPR als
+primäre Optimierungsmetrik sowie die Fokussierung auf FPR und AP in der Evaluation.
 
 % ---------------------------------------------------------------------------
 \subsection{XGBoost für tabellarische Metrikdaten}
 % ---------------------------------------------------------------------------
 
 Als metrischer Basis-Detektor wird in dieser Arbeit XGBoost~\cite{chen2016xgboost}
-eingesetzt. XGBoost implementiert Gradient Tree Boosting und approximiert den
-Split-Finding-Algorithmus durch eine histogrammbasierte Methode
-(\texttt{tree\_method='hist'}), die den Trainingsaufwand gegenüber dem exakten
-Verfahren deutlich reduziert. Für tabellarisch strukturierte Daten mit numerischen
+eingesetzt. XGBoost implementiert Gradient Tree Boosting und kann den
+Split-Finding-Algorithmus durch eine histogrammbasierte Methode approximieren,
+die den Trainingsaufwand gegenüber einer exakten Split-Suche deutlich
+reduziert. Für tabellarisch strukturierte Daten mit numerischen
 Features und heterogenen Skalen stellt XGBoost ein in der Literatur breit erprobtes
 Verfahren dar.
 
-Relevante Eigenschaften für diese Arbeit sind der Parameter
-\texttt{scale\_pos\_weight} zur Gewichtung der Minderheitsklasse im unbalancierten
-Setting sowie die Möglichkeit, AUCPR direkt als Optimierungsmetrik zu verwenden.
+Relevant für diese Arbeit sind zudem die Möglichkeit, die Minderheitsklasse im
+unbalancierten Setting stärker zu gewichten, sowie die Möglichkeit, AUCPR direkt
+als Optimierungsmetrik zu verwenden.
 
 XGBoost wird hier nicht als grundsätzlich überlegenes Verfahren positioniert, sondern
 als solide, reproduzierbare Baseline für tabellarische Klassifikation. Es ist nicht
@@ -126,8 +128,7 @@ Leistungsgrenze die Notwendigkeit einer ergänzenden Log-Komponente motivieren.
 % ---------------------------------------------------------------------------
 
 Die log-basierte Komponente dieser Arbeit nutzt eine Kombination aus
-\emph{TF-IDF}-Vektori\-sie\-rung und logistischer Regression. TF-IDF (\emph{Term
-Frequency~-- Inverse Document Frequency}) gewichtet Terme proportional zu ihrer
+\emph{TF-IDF}-Vektori\-sie\-rung und logistischer Regression. TF-IDF gewichtet Terme proportional zu ihrer
 Häufigkeit im Dokument, normiert jedoch durch ihre Häufigkeit über alle Dokumente.
 Häufige, wenig diskriminierende Terme, in Log-Dateien etwa routinemäßige
 Statusmeldungen, erhalten dadurch geringere Gewichte. Seltene, charakteristische
@@ -139,14 +140,14 @@ eine etablierte Wahl. Der Klassifikator wird in dieser Arbeit mit
 scikit-learn~\cite{pedregosa2011scikit} umgesetzt. Die logistische Regression
 liefert Scores, die in der nachgelagerten Fusionsstufe
 direkt weiterverwendet werden. Eine explizite Wahrscheinlichkeitskalibrierung
-(z.\,B. Platt Scaling) wurde nicht durchgeführt. Die Ausgaben werden daher als
+(z.\,B.\ Platt Scaling) wurde nicht durchgeführt, sondern die Ausgaben wurden als
 Modellscores interpretiert.
 
 Die Entscheidung für TF-IDF und logistische Regression folgt dem Prinzip einer
 interpretierbaren und effizient trainierbaren Baseline. Fortgeschrittenere Ansätze zur Log-Analyse, etwa struktur-bewusste
-Log-Parser, vortrainierte Sprachmodelle oder Embedding-Methoden, wurden in dieser
-Arbeit nicht untersucht. Sie stellen eine naheliegende Erweiterung dar, sind aber
-nicht Gegenstand der vorliegenden Evaluation.
+Log-Parser, vortrainierte Sprachmodelle oder Embedding-Methoden, lagen außerhalb des
+festgelegten Untersuchungsrahmens dieser Arbeit. Sie stellen eine naheliegende
+Erweiterung dar, waren aber nicht Gegenstand der vorliegenden Evaluation.
 
 % ---------------------------------------------------------------------------
 \subsection{Data Leakage und gruppenbasierte Validierung}
@@ -154,20 +155,20 @@ nicht Gegenstand der vorliegenden Evaluation.
 
 Eine korrekte Evaluation maschineller Lernverfahren setzt voraus, dass keine
 Information aus dem Testset in den Trainingsprozess einfließt. Kaufman~et~al.~\cite{kaufman2012leakage}
-klassifizieren verschiedene Formen von Datenleck (\emph{Data Leakage}) und zeigen,
-dass selbst scheinbar harmlose Preprocessing-Schritte, etwa eine globale
-Skalierung oder Imputation, die gemessene Testleistung künstlich erhöhen können,
-wenn sie auf dem Gesamtdatensatz statt ausschließlich auf dem Trainingsanteil
-durchgeführt werden.
+zeigen, dass Informationen aus dem Evaluationsanteil nicht in den Lernprozess
+einfließen dürfen, da dies zu optimistischen Leistungsschätzungen führen kann.
+Auf die vorliegende Pipeline übertragen betrifft dies beispielsweise eine globale
+Skalierung oder Imputation vor der Datenaufteilung.
 
 Für diese Arbeit ist eine spezifische Form von Leakage besonders relevant:
 \emph{Schema-Leakage} durch strukturelle Fehlwerte. Werden verschiedene Klassen
 mit systematisch unterschiedlichen Feature-Schemata erfasst, entstehen
 typspezifische \texttt{NaN}-Muster, die ein Modell implizit zur Bestimmung der
 Klassenzugehörigkeit nutzen kann, noch bevor inhaltlich relevante Signale
-verarbeitet werden. Kaufman~et~al.~\cite{kaufman2012leakage} klassifizieren dies
-als Target Leakage, da die Feature-Struktur die Zielvariable enkodiert und eine
-valide Evaluation verhindert. Die methodische Konsequenz ist die Beschränkung der
+verarbeitet werden. Dies entspricht dem von \mbox{Kaufman}~et~al. beschriebenen Prinzip eines
+unzulässigen Merkmals, da die Feature-Struktur Informationen über die
+Zielvariable trägt und dadurch eine valide Evaluation gefährden
+kann~\cite{kaufman2012leakage}. Die methodische Konsequenz ist die Beschränkung der
 Modellierung auf Features, die in allen Klassen vollständig verfügbar sind.
 
 Ein zweites Leakage-Risiko ergibt sich aus der Datensatzstruktur: Beobachtungen
@@ -176,7 +177,7 @@ Aufteilung in Trainings- und Testmenge ohne Berücksichtigung dieser Gruppen
 würde Szenarien auf beiden Seiten des Splits erlauben und die Trennleistung
 systematisch überschätzen. Roberts~et~al.~\cite{roberts2017cross} zeigen, dass
 bei Daten mit gruppenweise korrelierten Beobachtungen eine gruppenweise Partitionierung
-notwendig ist. In dieser Arbeit wird \texttt{GroupShuffleSplit} verwendet, das
+methodisch empfehlenswert ist. In dieser Arbeit wird \texttt{GroupShuffleSplit} verwendet, das
 sicherstellt, dass kein Szenario gleichzeitig in Trainings- und Testmenge vertreten
 ist.
 
@@ -185,10 +186,10 @@ ist.
 % ---------------------------------------------------------------------------
 
 Die Kombination mehrerer Klassifikatoren zu einem gemeinsamen Entscheidungssystem
-ist ein etabliertes Forschungsfeld. Kittler~et~al.~\cite{kittler1998combining}
-systematisieren verschiedene Fusionsregeln, darunter Produkt-Regel, Summen-Regel
-und Mehrheitsentscheid, und zeigen, unter welchen Voraussetzungen sie
-asymptotisch äquivalent sind.
+ist ein etabliertes Forschungsfeld. Kittler~et~al.~\cite{kittler1998combining} leiten mehrere Fusionsregeln,
+darunter Produkt-Regel, Summen-Regel und Mehrheitsentscheid, als unterschiedliche
+Näherungen innerhalb eines gemeinsamen Bayes-Rahmens her und zeigen in ihren
+Experimenten eine besondere Robustheit der Summenregel.
 
 In dieser Arbeit wird die Fusionsentscheidung direkt auf Case-Ebene getroffen.
 Beide Komponenten liefern pro Case~$c$ einen Score:
@@ -215,7 +216,7 @@ Die \textbf{Soft-Fusion} kombiniert beide Scores als Produkt:
 \]
 Da beide Faktoren im Intervall $[0,1]$ liegen, gilt dies auch für
 $s_{\text{fusion}}(c)$. Kittler~et~al.~\cite{kittler1998combining} zeigen, dass
-die Produktregel unter der Annahme unabhängiger Klassifikatoren asymptotisch
+die Produktregel unter der Annahme unabhängiger Klassifikatoren asym\-pto\-tisch
 optimal ist. Wie gut diese Annahme auf den vorliegenden Daten zutrifft, ist eine
 empirische Frage. Die Thresholds $\tau_{\text{metric}}$ und $\tau_{\text{log}}$
 werden ausschließlich auf dem Validierungsset bestimmt. Das Testset wird nur zur
